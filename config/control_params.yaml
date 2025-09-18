@@ -1,0 +1,56 @@
+# config/control_params.yaml
+control:
+  torque_arbiter:
+    update_rate: 100
+    max_torque_change: 50.0
+    efficiency_weight: 0.7
+    response_weight: 0.3
+    battery_soc_weight: 0.2
+    
+  cvt_controller:
+    update_rate: 50
+    min_ratio: 0.5
+    max_ratio: 3.0
+    max_ratio_change: 0.1
+    slip_target: 0.15
+    
+  energy_manager:
+    update_rate: 20
+    prediction_horizon: 5.0
+    battery_soc_min: 0.2
+    battery_soc_max: 0.9
+    fuel_cost_weight: 0.6
+    electricity_cost_weight: 0.4
+
+safety:
+  limits:
+    max_engine_torque: 600.0
+    max_motor_torque: 450.0
+    max_vehicle_speed: 40.0
+    max_system_temperature: 105.0
+    min_battery_voltage: 480.0
+    wheel_slip_threshold: 0.35
+    
+  monitoring:
+    check_interval: 100
+    violation_history_size: 1000
+    emergency_response_time: 500
+
+diagnostic:
+  fault_rules:
+    - code: 0x1001
+      condition: "engine_temperature > 105"
+      severity: "HIGH"
+      auto_recover: true
+      timeout: 30000
+      
+    - code: 0x1002  
+      condition: "battery_voltage < 480"
+      severity: "MEDIUM"
+      auto_recover: true
+      timeout: 60000
+      
+  health_monitoring:
+    check_interval: 1000
+    history_size: 10000
+    predictive_maintenance: true

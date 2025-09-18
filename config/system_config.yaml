@@ -1,0 +1,73 @@
+# config/system_config.yaml
+system:
+  name: "Autonomous Tractor VCU System"
+  version: "1.0.0"
+  control_rate: 100    # Hz
+  simulation_mode: false
+  log_level: "info"    # debug, info, warning, error
+  data_logging:
+    enabled: true
+    directory: "/var/log/vcu"
+    max_size_mb: 100
+    retention_days: 7
+
+vehicle:
+  mass: 8000.0         # kg
+  wheel_radius: 0.9    # m
+  rolling_resistance: 0.08
+  frontal_area: 6.5    # m²
+  drag_coefficient: 0.8
+  max_speed: 40.0      # km/h
+
+powertrain:
+  engine:
+    max_torque: 600.0   # Nm
+    max_power: 235.0    # kW
+    idle_rpm: 800.0
+    max_rpm: 2200.0
+    efficiency_map: "config/engine_efficiency.csv"
+  motor:
+    max_torque: 400.0   # Nm
+    max_power: 150.0    # kW
+    peak_power_duration: 30.0
+    efficiency_map: "config/motor_efficiency.csv"
+  battery:
+    capacity: 25.0      # kWh
+    nominal_voltage: 650.0
+    max_charge_power: 50.0
+    max_discharge_power: 150.0
+    min_soc: 0.2
+    max_soc: 0.9
+
+control:
+  torque_arbiter:
+    update_rate: 100    # Hz
+    max_torque_change: 50.0 # Nm/cycle
+    efficiency_weight: 0.7
+    response_weight: 0.3
+  cvt_controller:
+    update_rate: 50     # Hz
+    min_ratio: 0.5
+    max_ratio: 3.0
+    max_ratio_change: 0.1
+  energy_manager:
+    update_rate: 20     # Hz
+    prediction_horizon: 200 # ms
+    cost_weights:
+      fuel: 0.6
+      electricity: 0.3
+      battery_health: 0.1
+
+diagnostic:
+  update_rate: 10      # Hz
+  fault_detection:
+    enabled: true
+    thresholds:
+      over_temperature: 105.0    # °C
+      over_voltage: 720.0        # V
+      over_current: 300.0        # A
+      wheel_slip: 0.3            # ratio
+  data_logging:
+    enabled: true
+    sampling_rate: 10            # Hz
+    buffer_size: 3600            # 1 hour

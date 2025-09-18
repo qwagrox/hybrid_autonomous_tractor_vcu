@@ -1,0 +1,12 @@
+# config/motor_params.cfg
+rated_power 100.0
+peak_power 150.0
+rated_torque 300.0
+peak_torque 450.0
+max_speed 6000.0
+base_speed 2000.0
+stator_resistance 0.02
+back_emf_constant 0.5
+thermal_resistance 0.1
+thermal_capacitance 5000.0
+mechanical_losses 5.0

@@ -1,0 +1,9 @@
+# config/prediction_params.cfg
+prediction_horizon 5.0
+time_step 0.1
+ml_model_path "models/prediction_model.onnx"
+nmpc_solver_iterations 100
+nmpc_solver_tolerance 1e-6
+strategy_evaluation_interval 10.0
+fallback_threshold 2.0
+degradation_threshold 5.0

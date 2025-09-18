@@ -1,0 +1,12 @@
+# config/engine_params.cfg
+rated_power 150.0
+peak_power 200.0
+rated_torque 400.0
+peak_torque 600.0
+max_rpm 2500
+idle_rpm 800
+optimal_efficiency_rpm 1800
+fuel_consumption_base 0.25
+fuel_consumption_slope 0.0001
+thermal_capacity 15000.0
+cooling_efficiency 0.8
