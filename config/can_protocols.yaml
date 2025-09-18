@@ -1,0 +1,27 @@
+# CAN Protocols Configuration
+
+protocols:
+  - name: "J1939"
+    id: 0x01
+    spec: "SAE J1939"
+    enabled: true
+    parameters:
+      baudrate: 250000
+      source_address: 0x00
+
+  - name: "ISOBUS"
+    id: 0x02
+    spec: "ISO 11783"
+    enabled: true
+    parameters:
+      baudrate: 250000
+      source_address: 0xF9 # VCU
+
+  - name: "CANopen"
+    id: 0x03
+    spec: "CiA 301"
+    enabled: false
+    parameters:
+      baudrate: 500000
+      node_id: 10
+

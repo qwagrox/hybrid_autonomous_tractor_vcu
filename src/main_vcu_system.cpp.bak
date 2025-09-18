@@ -9,12 +9,6 @@
 #include "control/torque_arbiter.hpp"
 #include "control/cvt_controller.hpp"
 #include "control/energy_manager.hpp"
-#include "control/implement_control_manager.hpp"
-#include "control/implement_drivers/plow_controller.hpp"
-#include "control/implement_drivers/seeder_controller.hpp"
-#include "control/implement_drivers/fertilizer_controller.hpp"
-#include "control/implement_drivers/sprayer_controller.hpp"
-#include "integration/isobus_adapter.hpp"
 #include "execution/actuator_interface.hpp"
 #include "execution/safety_monitor.hpp"
 #include "execution/fault_handler.hpp"
@@ -54,7 +48,7 @@ private:
     std::unique_ptr<FaultHandler> faultHandler_;
     std::unique_ptr<HealthMonitor> healthMonitor_;
     std::unique_ptr<DataLogger> dataLogger_;
-    _**[Code omitted for brevity. To view the full code, please visit the file link.]**_
+    std::unique_ptr<AdaptiveLearner> adaptiveLearner_;
     
     // 硬件驱动
     std::unique_ptr<CANDriver> canDriver_;
@@ -302,17 +296,7 @@ private:
             // 初始化诊断层
             healthMonitor_ = std::make_unique<HealthMonitor>();
             dataLogger_ = std::make_unique<DataLogger>("/var/log/vcu");
-                        adaptiveLearner_ = std::make_unique<AdaptiveLearner>();
-
-            // 初始化农具控制组件
-            isobusAdapter_ = std::make_shared<ISOBUSAdapter>();
-            implementControlManager_ = std::make_unique<ImplementControlManager>(isobusAdapter_);
-
-            // 注册农具驱动
-            implementControlManager_->registerDriver(std::make_shared<PlowController>(isobusAdapter_));
-            implementControlManager_->registerDriver(std::make_shared<SeederController>(isobusAdapter_));
-            implementControlManager_->registerDriver(std::make_shared<FertilizerController>(isobusAdapter_));
-            implementControlManager_->registerDriver(std::make_shared<SprayerController>(isobusAdapter_));
+            adaptiveLearner_ = std::make_unique<AdaptiveLearner>();
             
             std::cout << "Algorithms initialized successfully" << std::endl;
             return true;
@@ -396,11 +380,6 @@ private:
         
         // 6. 更新系统状态
         updateSystemState(perception, commands);
-
-        // 8. 更新农具控制
-        if (implementControlManager_) {
-            implementControlManager_->update(cycleDuration.count() / 1000.0); // a cycleDuration está em milissegundos
-        }
         
         // 7. 数据记录
         logCycleData(sensorData, perception, commands);

@@ -351,3 +351,58 @@ struct PerformanceStatistics {
 };
 
 } // namespace VCUCore
+
+// ====================================================================
+// 农具控制相关类型 (Implement Control Types)
+// ====================================================================
+
+#include <string>
+#include <vector>
+#include <map>
+
+/**
+ * @enum ImplementState
+ * @brief 定义农具的生命周期状态
+ */
+enum class ImplementState {
+    UNKNOWN,       // 未知状态
+    IDLE,          // 空闲状态
+    CONFIGURED,    // 已配置
+    ACTIVE,        // 作业中
+    TRANSPORT,     // 运输模式
+    FAULT,         // 故障状态
+    EMERGENCY_STOP // 紧急停止
+};
+
+/**
+ * @struct ImplementConfig
+ * @brief 存储单个农具的配置参数
+ */
+struct ImplementConfig {
+    std::string type;                     // 农具类型 (e.g., "Plow")
+    std::string name;                     // 农具名称 (e.g., "John Deere 2720")
+    double work_width;                    // 工作宽度 (米)
+    std::map<std::string, double> params; // 其他特定参数 (e.g., {"max_depth", 0.4})
+};
+
+/**
+ * @struct ImplementStatus
+ * @brief 存储农具的实时状态
+ */
+struct ImplementStatus {
+    ImplementState state = ImplementState::UNKNOWN;
+    bool is_connected = false;
+    double current_depth = 0.0;           // 当前深度 (米)
+    double current_rate = 0.0;            // 当前速率 (e.g., kg/ha or L/min)
+    std::vector<std::string> errors;      // 当前错误信息
+};
+
+/**
+ * @struct DiagnosticReport
+ * @brief 存储诊断测试的结果
+ */
+struct DiagnosticReport {
+    bool passed = true;
+    std::vector<std::string> findings; // 诊断发现
+};
+

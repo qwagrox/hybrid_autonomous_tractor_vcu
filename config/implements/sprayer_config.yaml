@@ -1,0 +1,19 @@
+# 喷药机配置文件 (Sprayer Configuration)
+
+implement:
+  type: "Sprayer"
+  name: "Hardi Navigator 4000"
+  work_width: 24.0 # 工作宽度 (米)
+
+  # ISOBUS 通信参数
+  isobus:
+    destination_address: 0x28 # 假设的ISOBUS设备地址
+    pgn_rate_control: 0xEF04   # 假设的速率控制PGN
+    pgn_enable_control: 0xEF05 # 假设的启停控制PGN
+
+  # 作业参数
+  parameters:
+    min_rate_l_ha: 50.0    # 最小喷洒率 (L/ha)
+    max_rate_l_ha: 400.0   # 最大喷洒率 (L/ha)
+    default_rate_l_ha: 200.0 # 默认喷洒率
+
