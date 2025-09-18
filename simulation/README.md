@@ -1,5 +1,9 @@
 # VCU犁地阻力智能决策仿真测试
 
+**版本**: 1.0  
+**作者**: tangyong@agrox.cloud
+**更新日期**: 2024/09/18
+
 ## 概述
 
 这是一个完整的VCU（车辆控制单元）犁地阻力智能决策仿真测试程序，用于验证VCU系统在遇到突发土壤阻力时的智能响应能力。
@@ -244,16 +248,3 @@ struct OptimizationWeights {
 1. 创建新的环境模型
 2. 定义测试序列
 3. 设置验证标准
-
-## 联系支持
-
-如有问题或建议，请参考：
-- 技术文档: `docs/simulation/`
-- 设计文档: `docs/simulation/plow_resistance_test_detailed_design.md`
-- 测试用例: `docs/simulation/test_cases_and_validation.md`
-
----
-
-**版本**: 1.0  
-**更新日期**: 2024年  
-**作者**: VCU开发团队
