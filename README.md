@@ -1,8 +1,8 @@
 # Hybrid Autonomous Tractor VCU （混合动力自主作业拖拉机智能整车控制器）
 
-**版本**: 1.0
-**作者**: tangyong@agrox.cloud
-**日期**: 2025/09/18
+- **版本**: 1.0
+- **作者**: tangyong@agrox.cloud
+- **日期**: 2025/09/18
 
 ## 1. 项目概述
 
@@ -28,7 +28,7 @@
 
 ## 3. 架构概览
 
-![本地路径](.\img\architecture.png)
+![image](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/architecture.png)
 
 - **平台层 (Platform Layer)**: 包含实时操作系统（或其抽象）和硬件抽象层（HAL），负责提供定时、中断、内存管理等基础服务，并封装对CAN控制器、GPIO、ADC等硬件的直接访问。
 - **服务层 (Service Layer)**: 提供跨应用的核心服务，包括通信管理（CAN/ISOBUS协议栈）、配置加载、诊断和健康监控等。
