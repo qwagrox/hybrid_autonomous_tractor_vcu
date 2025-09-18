@@ -65,8 +65,11 @@ cd hybrid_autonomous_tractor_vcu
 cd build/
 ./bin/unit_tests
 ```
+## 5. 仿真子系统运行测试
 
-## 5. 目录结构
+查看 [仿真子系统](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/simulation) 运行测试指南。
+
+## 6. 目录结构
 
 ```
 ├── config/         # 所有YAML配置文件
@@ -74,11 +77,12 @@ cd build/
 ├── include/        # 所有模块的头文件 (.hpp)
 ├── models/         # 机器学习模型文件 (.onnx, .tflite)
 ├── scripts/        # 辅助脚本 (构建, 部署, 分析等)
+├── simulation/     # 仿真子系统
 ├── src/            # 所有模块的源文件 (.cpp)
 └── tests/          # 单元测试、集成测试和系统测试
 ```
 
-## 6. 贡献指南
+## 7. 贡献指南
 
 我们欢迎任何形式的贡献！如果您希望为本项目做出贡献，请遵循以下步骤：
 
@@ -90,6 +94,6 @@ cd build/
 
 在提交代码前，请确保您的代码遵循项目现有的编码规范，并通过了所有测试。
 
-## 7. 许可证
+## 8. 许可证
 
 本项目采用 [MIT License](LICENSE) 开源许可证。
