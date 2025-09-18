@@ -1,4 +1,4 @@
-# Hybrid Autonomous Tractor VCU （混合动力自主作业拖拉机智能整车控制器）
+# 混合动力自主作业拖拉机智能整车控制器
 
 - **版本**: 1.0
 - **作者**: tangyong@agrox.cloud
