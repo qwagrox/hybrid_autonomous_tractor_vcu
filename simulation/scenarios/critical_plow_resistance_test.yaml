@@ -1,0 +1,202 @@
+scenario_name: "Critical Plow Resistance - VCU Intelligent Decision Making Test"
+description: "测试犁地时突发高阻力情况下VCU的智能决策和恢复能力"
+priority: "CRITICAL"
+duration: 180  # 3分钟测试
+
+# 初始工作条件
+initial_conditions:
+  engine_state: "running"
+  engine_speed: 1800.0  # RPM
+  engine_load: 60.0     # %
+  battery_soc: 85.0     # %
+  vehicle_speed: 8.0    # km/h
+  cvt_ratio: 1.5
+  plow_depth: 0.25      # 25cm正常犁地深度
+  soil_type: "normal_loam"
+  soil_moisture: 0.3    # 30%
+
+# 环境和土壤条件变化
+environment_changes:
+  # 第一阶段：正常犁地 (0-30s)
+  - time_range: [0.0, 30.0]
+    soil_resistance_factor: 1.0
+    description: "正常土壤条件，稳定犁地"
+  
+  # 第二阶段：遇到硬土层/石块 (30-45s)  
+  - time_range: [30.0, 45.0]
+    soil_resistance_factor: 4.5  # 阻力突增4.5倍
+    description: "遇到硬土层或大石块，犁具阻力剧增"
+    
+  # 第三阶段：阻力逐渐减小 (45-60s)
+  - time_range: [45.0, 60.0]
+    soil_resistance_factor: 2.8  # 阻力仍然较高
+    description: "部分通过障碍，但阻力仍高"
+    
+  # 第四阶段：恢复正常 (60-180s)
+  - time_range: [60.0, 180.0]
+    soil_resistance_factor: 1.0
+    description: "完全通过障碍，恢复正常土壤"
+
+# VCU预期决策序列
+expected_vcu_decisions:
+  # 阶段1：检测到异常阻力 (30-32s)
+  - time_range: [30.0, 32.0]
+    expected_actions:
+      - "detect_high_resistance"
+      - "increase_engine_torque"
+      - "adjust_cvt_ratio_down"  # 降低传动比，增加扭矩
+    validation_criteria:
+      - detection_time: "<2.0s"
+      - engine_torque_increase: ">20%"
+      - cvt_ratio_change: "<1.2"
+  
+  # 阶段2：持续高阻力，进一步调整 (32-40s)
+  - time_range: [32.0, 40.0]
+    expected_actions:
+      - "reduce_plow_depth"      # 减小犁地深度
+      - "reduce_vehicle_speed"   # 降低行驶速度
+      - "activate_hybrid_mode"   # 启用电机辅助
+    validation_criteria:
+      - plow_depth_reduction: ">15%"  # 深度减少至少15%
+      - speed_reduction: ">25%"       # 速度降低至少25%
+      - motor_torque_assist: ">50Nm"  # 电机提供辅助扭矩
+  
+  # 阶段3：阻力减小，开始恢复 (45-65s)
+  - time_range: [45.0, 65.0]
+    expected_actions:
+      - "gradual_depth_recovery"    # 逐步恢复犁地深度
+      - "adjust_cvt_ratio_up"       # 逐步提高传动比
+      - "monitor_system_stability"  # 监控系统稳定性
+    validation_criteria:
+      - depth_recovery_rate: "0.02m/s"  # 每秒恢复2cm深度
+      - cvt_ratio_increase: "gradual"    # 传动比平滑增加
+      - no_oscillation: true             # 无系统振荡
+  
+  # 阶段4：完全恢复正常作业 (65-180s)
+  - time_range: [65.0, 180.0]
+    expected_actions:
+      - "restore_target_depth"     # 恢复目标犁地深度
+      - "restore_target_speed"     # 恢复目标行驶速度
+      - "optimize_fuel_efficiency" # 优化燃油效率
+    validation_criteria:
+      - final_depth: "0.25±0.02m"      # 恢复到原始深度
+      - final_speed: "8.0±0.5km/h"     # 恢复到原始速度
+      - fuel_consumption: "optimized"   # 燃油消耗优化
+
+# 关键性能指标监控
+performance_monitoring:
+  critical_parameters:
+    - name: "engine_speed"
+      normal_range: [1600, 2000]  # RPM
+      alarm_threshold: [1400, 2200]
+      
+    - name: "engine_torque"
+      normal_range: [200, 350]    # Nm
+      alarm_threshold: [150, 400]
+      
+    - name: "cvt_ratio"
+      normal_range: [0.8, 2.0]
+      alarm_threshold: [0.5, 2.5]
+      
+    - name: "plow_depth"
+      normal_range: [0.20, 0.30]  # m
+      alarm_threshold: [0.10, 0.35]
+      
+    - name: "vehicle_speed"
+      normal_range: [6.0, 10.0]   # km/h
+      alarm_threshold: [3.0, 12.0]
+      
+    - name: "battery_soc"
+      normal_range: [20, 100]     # %
+      alarm_threshold: [10, 100]
+
+# 故障注入测试（可选）
+optional_fault_injection:
+  - time: 35.0
+    fault_type: "sensor_noise"
+    target: "load_torque_sensor"
+    noise_amplitude: 0.1
+    duration: 5.0
+    description: "在高阻力时注入传感器噪声，测试鲁棒性"
+
+# 数据记录配置
+data_logging:
+  sampling_rate: 100  # Hz
+  parameters_to_log:
+    - "simulation_time"
+    - "engine_speed"
+    - "engine_torque"
+    - "engine_throttle_position"
+    - "motor_torque"
+    - "motor_speed"
+    - "battery_soc"
+    - "battery_current"
+    - "cvt_ratio"
+    - "cvt_input_speed"
+    - "cvt_output_speed"
+    - "vehicle_speed"
+    - "plow_depth_target"
+    - "plow_depth_actual"
+    - "plow_load_torque"
+    - "soil_resistance_factor"
+    - "fuel_consumption_rate"
+    - "vcu_decision_state"
+    - "system_warnings"
+    - "system_errors"
+
+# 成功标准
+success_criteria:
+  primary_objectives:
+    - name: "阻力检测速度"
+      requirement: "在2秒内检测到异常阻力"
+      weight: 20
+      
+    - name: "动力系统响应"
+      requirement: "发动机扭矩在3秒内增加至少20%"
+      weight: 25
+      
+    - name: "犁地深度调整"
+      requirement: "在高阻力时自动减小犁地深度15%以上"
+      weight: 20
+      
+    - name: "系统恢复能力"
+      requirement: "阻力消除后30秒内恢复正常作业参数"
+      weight: 25
+      
+    - name: "系统稳定性"
+      requirement: "整个过程无系统故障或保护性停机"
+      weight: 10
+
+  performance_targets:
+    - "最大发动机转速不超过2200 RPM"
+    - "电池SOC下降不超过10%"
+    - "燃油消耗增加不超过30%"
+    - "作业效率损失不超过20%"
+
+# 风险评估
+risk_assessment:
+  high_risk_scenarios:
+    - "发动机过载保护触发"
+    - "CVT传动比调节失效"
+    - "犁具液压系统过压"
+    - "电池过放电保护"
+  
+  mitigation_strategies:
+    - "实时监控关键参数"
+    - "多层次保护机制"
+    - "渐进式参数调整"
+    - "故障安全模式"
+
+# 测试变体（用于全面验证）
+test_variants:
+  - variant_name: "极端硬土"
+    soil_resistance_factor: 6.0
+    description: "测试极端土壤条件下的应对能力"
+    
+  - variant_name: "低电量情况"
+    initial_battery_soc: 25.0
+    description: "测试低电量时的决策优先级"
+    
+  - variant_name: "连续障碍"
+    multiple_resistance_events: true
+    description: "测试连续遇到障碍时的累积效应处理"

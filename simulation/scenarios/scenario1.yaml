@@ -1,0 +1,35 @@
+scenario_name: "Plowing on Hilly Terrain with Engine Sensor Failure"
+
+duration: 120 # seconds
+
+environment:
+  slope_type: "sinusoidal"
+  slope_amplitude: 8.0 # degrees
+  slope_period: 60.0 # seconds
+  soil_resistance: 1.2
+
+implement:
+  type: "plow"
+  initial_depth: 0.2 # meters
+
+vcu_commands:
+  - time: 0.0
+    command: "start_engine"
+  - time: 5.0
+    command: "set_plow_depth"
+    value: 0.3
+  - time: 10.0
+    command: "set_speed"
+    value: 5.0 # km/h
+
+faults:
+  - type: "SENSOR_FAILURE"
+    target: "engine_speed_sensor"
+    value: 1500.0 # Stuck at 1500 RPM
+    start_time: 30.0
+    duration: 20.0
+  - type: "COMMUNICATION_LOST"
+    target: "implement_can"
+    start_time: 60.0
+    duration: 10.0
+
