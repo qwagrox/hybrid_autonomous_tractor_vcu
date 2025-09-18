@@ -65,9 +65,10 @@ cd hybrid_autonomous_tractor_vcu
 cd build/
 ./bin/unit_tests
 ```
-## 5. 仿真子系统运行测试
+## 5. 仿真子系统
 
-查看 [仿真子系统](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/simulation) 运行测试指南。
+1. 查看 [仿真子系统设计架构](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/docs/%E4%BB%BF%E7%9C%9F%E5%AD%90%E7%B3%BB%E7%BB%9F/simulation_architecture.md)
+2. 查看 [仿真子系统运行测试](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/simulation) 
 
 ## 6. 目录结构
 
