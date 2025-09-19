@@ -119,27 +119,13 @@ jobs:
           if [ -f "/usr/include/acado_toolkit.hpp" ]; then
             echo "✓ ACADO installed via PPA"
           else
-            echo "PPA installation failed, trying alternative method..."
+            echo "PPA installation failed, creating minimal ACADO headers..."
             
-            # 方法2: 下载预编译的二进制包
-            echo "Downloading ACADO prebuilt binaries..."
+            # 创建最小的ACADO头文件
+            sudo mkdir -p /opt/acado/include
             
-            # 下载ACADO 1.2.2 预编译版本（适用于Ubuntu 20.04/22.04）
-            wget -O acado-prebuilt.tar.gz "https://github.com/acado/acado/releases/download/1.2.2beta/acado-linux-x86_64.tar.gz" || \
-            curl -L -o acado-prebuilt.tar.gz "https://sourceforge.net/projects/acado/files/1.2.2beta/acado-linux-x86_64.tar.gz/download" || \
-            echo "Download failed, will create minimal ACADO headers"
-            
-            if [ -f "acado-prebuilt.tar.gz" ]; then
-              tar -xzf acado-prebuilt.tar.gz -C /opt/acado --strip-components=1 || echo "Extract failed"
-            fi
-            
-            # 方法3: 如果都失败，创建最小的ACADO头文件
-            if [ ! -f "/opt/acado/include/acado_toolkit.hpp" ] && [ ! -f "/usr/include/acado_toolkit.hpp" ]; then
-              echo "Creating minimal ACADO headers for compilation..."
-              sudo mkdir -p /opt/acado/include
-              
-              # 创建最小的acado_toolkit.hpp
-              sudo tee /opt/acado/include/acado_toolkit.hpp > /dev/null << 'EOF'
+            # 创建acado_toolkit.hpp
+            sudo bash -c 'cat > /opt/acado/include/acado_toolkit.hpp << "HEADER_EOF"
 #pragma once
 // Minimal ACADO headers for compilation compatibility
 #include <vector>
@@ -186,19 +172,18 @@ namespace ACADO {
         OCP() = default;
     };
 }
-EOF
-              
-              # 创建acado_gnuplot.hpp
-              sudo tee /opt/acado/include/acado_gnuplot.hpp > /dev/null << 'EOF'
+HEADER_EOF'
+            
+            # 创建acado_gnuplot.hpp
+            sudo bash -c 'cat > /opt/acado/include/acado_gnuplot.hpp << "GNUPLOT_EOF"
 #pragma once
 // Minimal ACADO gnuplot headers
 namespace ACADO {
     // Placeholder for gnuplot functionality
 }
-EOF
-              
-              echo "✓ Minimal ACADO headers created"
-            fi
+GNUPLOT_EOF'
+            
+            echo "✓ Minimal ACADO headers created"
           fi
         fi
         
