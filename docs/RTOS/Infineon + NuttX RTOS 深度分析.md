@@ -1,7 +1,7 @@
 # Infineon + NuttX RTOS 深度分析
 
 - **版本**: 1.0
-- **作者**: [tangyong@agrox.cloud](mailto:tangyong@agrox.cloud)
+- **作者**: [tangyong@stmail.ujs.edu.cn](mailto:tangyong@stmail.ujs.edu.cn)
 - **日期**: 2025/09/20
 
 **Infineon + NuttX：主控芯片+RTOS。NuttX已经**官方支持TC397芯片**，这是一个优秀的方案。与Zephyr不同，**NuttX的TriCore支持**已经成熟并集成到主线代码中。
