@@ -1,39 +1,135 @@
-# This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
-# See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
-name: CMake on a single platform
+name: VCU CMake Build and Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main, develop, feature/* ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main, develop ]
+  workflow_dispatch:
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
 
 jobs:
-  build:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-latest
+  build-and-test:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-20.04]
+        build_type: [Release, Debug]
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/vcpkg
+          /var/cache/apt
+        key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-deps-
+
+    - name: Update package lists
+      run: |
+        sudo apt-get update
+
+    - name: Install basic build tools
+      run: |
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          pkg-config \
+          wget \
+          git
+
+    - name: Install Eigen3
+      run: |
+        echo "Installing Eigen3..."
+        sudo apt-get install -y libeigen3-dev
+        
+        # 验证安装
+        if [ -d "/usr/include/eigen3" ]; then
+          echo "✓ Eigen3 headers found at /usr/include/eigen3"
+          ls -la /usr/include/eigen3/
+        else
+          echo "✗ Eigen3 headers not found, trying alternative installation..."
+          
+          # 如果apt安装失败，从源码编译安装
+          cd /tmp
+          wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+          tar -xzf eigen-3.4.0.tar.gz
+          cd eigen-3.4.0
+          mkdir build && cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
+          sudo make install
+          
+          # 创建符号链接到标准位置
+          sudo ln -sf /usr/local/include/eigen3 /usr/include/eigen3
+        fi
+        
+        # 最终验证
+        if [ -f "/usr/include/eigen3/Eigen/Dense" ]; then
+          echo "✓ Eigen3 installation verified"
+        else
+          echo "✗ Eigen3 installation failed"
+          exit 1
+        fi
+
+    - name: Install other dependencies
+      run: |
+        sudo apt-get install -y \
+          libgtest-dev \
+          libgmock-dev \
+          lcov \
+          cppcheck \
+          clang-format \
+          valgrind
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.20'
 
     - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+      run: |
+        cmake -B ${{github.workspace}}/build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_CXX_STANDARD=17 \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -G Ninja
 
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    - name: Build project
+      run: |
+        cmake --build ${{github.workspace}}/build \
+          --config ${{ matrix.build_type }} \
+          --parallel $(nproc)
 
-    - name: Test
+    - name: Run tests
       working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
+      run: |
+        ctest --output-on-failure --parallel $(nproc)
 
+    - name: Test executable
+      working-directory: ${{github.workspace}}/build
+      run: |
+        ./vcu_main
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: build-artifacts-${{ matrix.os }}-${{ matrix.build_type }}
+        path: |
+          build/vcu_main
+          build/system_test
+          build/compile_commands.json
+        retention-days: 7
