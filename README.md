@@ -68,7 +68,8 @@ cd build/
 ## 5. 仿真子系统
 
 1. 查看 [仿真子系统设计架构](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/docs/%E4%BB%BF%E7%9C%9F%E5%AD%90%E7%B3%BB%E7%BB%9F/simulation_architecture.md)
-2. 查看 [仿真子系统运行测试](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/simulation) 
+2. 查看 [仿真子系统运行测试](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/simulation)
+3. 查看 [仿真子系统HIL](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/simulation_hil)
 
 ## 6. 目录结构
 
@@ -78,7 +79,8 @@ cd build/
 ├── include/        # 所有模块的头文件 (.hpp)
 ├── models/         # 机器学习模型文件 (.onnx, .tflite)
 ├── scripts/        # 辅助脚本 (构建, 部署, 分析等)
-├── simulation/     # 仿真子系统
+├── simulation/     # 仿真子系统（软件在环SIL）
+├── simulation_hil/     # 仿真子系统（硬件在环HIL）
 ├── src/            # 所有模块的源文件 (.cpp)
 └── tests/          # 单元测试、集成测试和系统测试
 ```
