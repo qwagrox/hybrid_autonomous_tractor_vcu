@@ -2,7 +2,7 @@
 
 - **版本**: 1.0
 - **作者**: tangyong@stmail.ujs.edu.cn ， 目前就读江苏大学农机控制理论与工程博士
-- **日期**: 2025/09/19
+- **日期**: 2025/09/20
 
 ## 1. 项目概述
 
@@ -71,7 +71,11 @@ cd build/
 2. 查看 [仿真子系统运行测试](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/simulation)
 3. 查看 [仿真子系统HIL](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/simulation_hil)
 
-## 6. 目录结构
+## 6. Infineon + NuttX RTOS + POSIX移植
+
+查看 [Infineon + NuttX RTOS + POSIX移植](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/docs/RTOS)
+
+## 7. 目录结构
 
 ```
 ├── config/         # 所有YAML配置文件
@@ -85,7 +89,7 @@ cd build/
 └── tests/          # 单元测试、集成测试和系统测试
 ```
 
-## 7. 贡献指南
+## 8. 贡献指南
 
 我们欢迎任何形式的贡献！如果您希望为本项目做出贡献，请遵循以下步骤：
 
@@ -97,6 +101,6 @@ cd build/
 
 在提交代码前，请确保您的代码遵循项目现有的编码规范，并通过了所有测试。
 
-## 8. 许可证
+## 9. 许可证
 
 本项目采用 [MIT License](LICENSE) 开源许可证。
