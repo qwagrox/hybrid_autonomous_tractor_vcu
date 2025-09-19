@@ -36,21 +36,6 @@ private:
         int cycleCount;                 // 循环次数
     };
     
-    // 电池状态
-    struct BatteryState {
-        float voltage;                  // 总电压 (V)
-        float current;                  // 电流 (A) - 正为放电，负为充电
-        float soc;                      // 电量状态 (%)
-        float soh;                      // 健康状态 (%)
-        float temperature;              // 温度 (°C)
-        float power;                    // 功率 (W)
-        float energy;                   // 剩余能量 (kWh)
-        float internalResistance;       // 总内阻 (Ω)
-        uint32_t timestamp;             // 时间戳
-        uint32_t cycleCount;            // 总循环次数
-        std::vector<CellModel> cells;   // 电芯状态
-    };
-    
     BatteryParameters params_;
     BatteryState currentState_;
     BatteryState previousState_;
@@ -163,39 +148,5 @@ private:
     void detectCellAnomalies();
 };
 
-// 电池健康状态结构
-struct BatteryHealth {
-    float overallHealth;
-    float capacityHealth;
-    float resistanceHealth;
-    float voltageHealth;
-    float temperatureHealth;
-    uint32_t predictedLifeCycles;
-    uint32_t predictedLifeDays;
-};
-
-// 电池故障信息
-struct BatteryFault {
-    uint16_t faultCode;
-    FaultSeverity severity;
-    std::string description;
-    std::string component;
-    uint32_t timestamp;
-    bool isRecoverable;
-    std::vector<std::string> recoverySteps;
-};
-
-// 电池统计信息
-struct BatteryStatistics {
-    float totalEnergyCharged;
-    float totalEnergyDischarged;
-    float averageEfficiency;
-    float maxChargePower;
-    float maxDischargePower;
-    uint32_t totalCycles;
-    uint32_t deepCycles;
-    float averageSOC;
-    float temperatureStdDev;
-};
-
 } // namespace VCUCore
+

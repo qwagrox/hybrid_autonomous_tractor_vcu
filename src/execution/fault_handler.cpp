@@ -1,5 +1,5 @@
 // src/execution/fault_handler.cpp
-#include "fault_handler.hpp"
+#include "execution/fault_handler.hpp"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -221,7 +221,7 @@ void FaultHandler::resolveFault(uint16_t faultCode) {
     if (activeFaults_.count(faultCode)) {
         // 标记故障为已解决
         activeFaults_[faultCode].isActive = false;
-        activeFaults_[faultCode].duration = std::chrono::duration_cast<Timestamp>(
+        activeFaults_[faultCode].duration = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count() - 
             activeFaults_[faultCode].timestamp;
         
@@ -277,7 +277,7 @@ FaultDiagnosis FaultHandler::createFaultDiagnosis(uint16_t code, FaultSeverity s
         .severity = severity,
         .description = description,
         .component = component,
-        .timestamp = std::chrono::duration_cast<Timestamp>(
+        .timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count(),
         .duration = 0,
         .isActive = true,

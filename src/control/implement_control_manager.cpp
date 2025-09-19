@@ -1,59 +1,125 @@
-#include "../../include/control/implement_control_manager.hpp"
-#include <stdexcept>
+// src/control/implement_control_manager.cpp
+#include "control/implement_control_manager.hpp"
+#include <iostream>
 
-ImplementControlManager::ImplementControlManager(std::shared_ptr<ISOBUSAdapter> isobus_adapter)
-    : isobus_adapter_(isobus_adapter), active_driver_(nullptr) {}
+namespace VCUCore {
 
-void ImplementControlManager::registerDriver(std::shared_ptr<IImplementController> driver) {
-    if (driver) {
-        std::string type = driver->getType();
-        if (drivers_.find(type) == drivers_.end()) {
-            drivers_[type] = driver;
+ImplementControlManager::ImplementControlManager() : isInitialized_(false) {
+}
+
+bool ImplementControlManager::initialize() {
+    std::cout << "Initializing implement control manager..." << std::endl;
+    isInitialized_ = true;
+    return true;
+}
+
+void ImplementControlManager::shutdown() {
+    if (!isInitialized_) return;
+    std::cout << "Shutting down implement control manager..." << std::endl;
+    controllers_.clear();
+    controllerMap_.clear();
+    isInitialized_ = false;
+}
+
+bool ImplementControlManager::addController(std::unique_ptr<IImplementController> controller) {
+    if (!isInitialized_ || !controller) return false;
+    
+    std::string type = controller->getType();
+    if (controllerMap_.find(type) != controllerMap_.end()) {
+        std::cerr << "Controller type already exists: " << type << std::endl;
+        return false;
+    }
+    
+    controllers_.push_back(std::move(controller));
+    controllerMap_[type] = controllers_.size() - 1;
+    std::cout << "Added implement controller: " << type << std::endl;
+    return true;
+}
+
+bool ImplementControlManager::removeController(const std::string& type) {
+    if (!isInitialized_ || controllerMap_.find(type) == controllerMap_.end()) {
+        return false;
+    }
+    
+    size_t index = controllerMap_[type];
+    controllers_.erase(controllers_.begin() + index);
+    controllerMap_.erase(type);
+    
+    // 更新映射
+    for (auto const& [key, val] : controllerMap_) {
+        if (val > index) {
+            controllerMap_[key] = val - 1;
         }
     }
+    
+    std::cout << "Removed implement controller: " << type << std::endl;
+    return true;
 }
 
-bool ImplementControlManager::selectImplement(const std::string& type) {
-    if (drivers_.find(type) != drivers_.end()) {
-        active_driver_ = drivers_[type];
-        // TODO: Add logic to load configuration and initialize the driver
-        return true;
+IImplementController* ImplementControlManager::getController(const std::string& type) {
+    if (!isInitialized_ || controllerMap_.find(type) == controllerMap_.end()) {
+        return nullptr;
+    }
+    return controllers_[controllerMap_[type]].get();
+}
+
+std::vector<std::string> ImplementControlManager::getAvailableTypes() const {
+    std::vector<std::string> types;
+    for (auto const& [key, val] : controllerMap_) {
+        (void)val; // 避免未使用参数警告
+        types.push_back(key);
+    }
+    return types;
+}
+
+bool ImplementControlManager::startAll() {
+    if (!isInitialized_) return false;
+    for (auto& controller : controllers_) {
+        controller->start();
+    }
+    return true;
+}
+
+bool ImplementControlManager::stopAll() {
+    if (!isInitialized_) return false;
+    for (auto& controller : controllers_) {
+        controller->stop();
+    }
+    return true;
+}
+
+bool ImplementControlManager::setWorkParameter(const std::string& type, const std::string& key, double value) {
+    IImplementController* controller = getController(type);
+    if (controller) {
+        return controller->setWorkParameter(key, value);
     }
     return false;
 }
 
-bool ImplementControlManager::startWork() {
-    if (active_driver_) {
-        return active_driver_->start();
+std::vector<ImplementStatus> ImplementControlManager::getAllStatus() const {
+    std::vector<ImplementStatus> statuses;
+    if (!isInitialized_) return statuses;
+    for (const auto& controller : controllers_) {
+        statuses.push_back(controller->getStatus());
     }
-    return false;
+    return statuses;
 }
 
-bool ImplementControlManager::stopWork() {
-    if (active_driver_) {
-        return active_driver_->stop();
+std::vector<DiagnosticReport> ImplementControlManager::runAllDiagnostics() {
+    std::vector<DiagnosticReport> reports;
+    if (!isInitialized_) return reports;
+    for (auto& controller : controllers_) {
+        reports.push_back(controller->runDiagnostics());
     }
-    return false;
+    return reports;
 }
 
-bool ImplementControlManager::setWorkParameter(const std::string& key, double value) {
-    if (active_driver_) {
-        return active_driver_->setWorkParameter(key, value);
+void ImplementControlManager::updateAll(double dt) {
+    if (!isInitialized_) return;
+    for (auto& controller : controllers_) {
+        controller->update(dt);
     }
-    return false;
 }
 
-ImplementStatus ImplementControlManager::getStatus() const {
-    if (active_driver_) {
-        return active_driver_->getStatus();
-    }
-    // Return a default/invalid status if no driver is active
-    return ImplementStatus{}; 
-}
-
-void ImplementControlManager::update(double dt) {
-    if (active_driver_) {
-        active_driver_->update(dt);
-    }
-}
+} // namespace VCUCore
 

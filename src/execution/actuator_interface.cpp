@@ -1,5 +1,5 @@
 // src/execution/actuator_interface.cpp
-#include "actuator_interface.hpp"
+#include "execution/actuator_interface.hpp"
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include <unistd.h>
@@ -133,7 +133,7 @@ bool ActuatorInterface::sendTorqueCommand(float engineTorque, float motorTorque)
         // 更新状态
         currentState_.engineTorqueCommand = calibratedEngineTorque;
         currentState_.motorTorqueCommand = calibratedMotorTorque;
-        currentState_.lastUpdateTime = std::chrono::duration_cast<Timestamp>(
+        currentState_.lastUpdateTime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count();
         
         // 记录命令历史
@@ -176,7 +176,7 @@ bool ActuatorInterface::sendCVTRatioCommand(float ratio) {
         
         // 更新状态
         currentState_.cvtRatioCommand = calibratedRatio;
-        currentState_.lastUpdateTime = std::chrono::duration_cast<Timestamp>(
+        currentState_.lastUpdateTime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count();
         
         return true;
@@ -212,7 +212,7 @@ bool ActuatorInterface::sendHydraulicCommand(float pressure) {
         
         // 更新状态
         currentState_.hydraulicPressure = calibratedPressure;
-        currentState_.lastUpdateTime = std::chrono::duration_cast<Timestamp>(
+        currentState_.lastUpdateTime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count();
         
         return true;
@@ -239,7 +239,7 @@ bool ActuatorInterface::sendImplementCommand(bool lift) {
         
         // 更新状态
         currentState_.implementLiftState = lift;
-        currentState_.lastUpdateTime = std::chrono::duration_cast<Timestamp>(
+        currentState_.lastUpdateTime = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count();
         
         return true;
@@ -318,7 +318,7 @@ bool ActuatorInterface::sendCANCommand(uint32_t canId, const std::vector<uint8_t
     frame.can_id = canId;
     frame.can_dlc = data.size() < 8 ? data.size() : 8;
     
-    for (int i = 0; i < frame.can_dlc; ++i) {
+    for (size_t i = 0; i < frame.can_dlc; ++i) {
         frame.data[i] = data[i];
     }
     
@@ -333,7 +333,7 @@ bool ActuatorInterface::sendGPIOCommand(uint8_t pin, bool state) {
     return gpioDriver_->setPinState(pin, state);
 }
 
-void ActuatorInterface::initializeCalibration() {
+bool ActuatorInterface::initializeCalibration() {
     // 默认校准参数
     calibration_ = {
         .engineTorqueOffset = 0.0f,
@@ -343,6 +343,7 @@ void ActuatorInterface::initializeCalibration() {
         .torqueCalibration = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},
         .ratioCalibration = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f}
     };
+    return true;
 }
 
 float ActuatorInterface::applyCalibration(float value, float offset, 
@@ -388,7 +389,7 @@ bool ActuatorInterface::loadCalibration(const std::string& calibrationFile) {
     }
 }
 
-ActuatorState ActuatorInterface::getCurrentState() const {
+ActuatorInterface::ActuatorState ActuatorInterface::getCurrentState() const {
     std::lock_guard<std::mutex> lock(stateMutex_);
     return currentState_;
 }
@@ -398,4 +399,12 @@ bool ActuatorInterface::checkActuatorHealth() const {
     return currentState_.errorCount < 10 && isInitialized_ && !emergencyStop_;
 }
 
+void ActuatorInterface::updateCommandHistory(const ActuatorCommand& command) {
+    commandHistory_.push_back(command);
+    if (commandHistory_.size() > 100) {
+        commandHistory_.pop_front();
+    }
+}
+
 } // namespace VCUCore
+

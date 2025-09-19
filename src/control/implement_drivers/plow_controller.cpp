@@ -1,5 +1,5 @@
-#include "../../../../include/control/implement_drivers/plow_controller.hpp"
-#include "../../../../include/integration/isobus_adapter.hpp"
+#include "control/implement_drivers/plow_controller.hpp"
+#include "integration/isobus_adapter.hpp"
 #include <stdexcept>
 
 PlowController::PlowController(std::shared_ptr<ISOBUSAdapter> isobus_adapter)

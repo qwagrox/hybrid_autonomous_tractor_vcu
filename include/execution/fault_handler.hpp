@@ -83,3 +83,6 @@ private:
 };
 
 } // namespace VCUCore
+
+bool handleSingleFault(const FaultDiagnosis& fault);
+

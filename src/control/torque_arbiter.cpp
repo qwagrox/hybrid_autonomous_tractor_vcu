@@ -1,5 +1,5 @@
 // src/control/torque_arbiter.cpp
-#include "torque_arbiter.hpp"
+#include "control/torque_arbiter.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -21,7 +21,7 @@ TorqueArbiter::TorqueArbiter(uint32_t historySize)
     initializePolicies();
     
     // 初始化历史缓冲区
-    torqueHistory_.reserve(maxHistorySize_);
+    // torqueHistory_.reserve(maxHistorySize_); // std::deque does not have reserve
 }
 
 void TorqueArbiter::initializePolicies() {

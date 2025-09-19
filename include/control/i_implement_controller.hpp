@@ -5,10 +5,30 @@
 #include <vector>
 #include "../vcu_core_types.hpp"
 
-// 前向声明
-struct ImplementConfig;
-struct ImplementStatus;
-struct DiagnosticReport;
+enum class ImplementState : uint8_t {
+    IDLE,
+    ACTIVE,
+    ERROR,
+    CONFIGURED
+};
+
+struct ImplementConfig {
+    std::string name;
+    std::string type;
+};
+
+struct ImplementStatus {
+    ImplementState state;
+    bool is_connected;
+    float current_depth;
+    float current_rate;
+};
+
+struct DiagnosticReport {
+    bool passed;
+    std::vector<std::string> findings;
+};
+
 
 /**
  * @class IImplementController

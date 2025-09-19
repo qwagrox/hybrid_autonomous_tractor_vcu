@@ -4,11 +4,14 @@
 #include <cstring>
 #include <iostream>
 #include <system_error>
+#include <fcntl.h>
+#include <thread>
+#include <chrono>
 
 namespace VCUCore {
 
 CANBusInterface::CANBusInterface(const std::string& interface) 
-    : interfaceName_(interface), canSocket_(-1), isInitialized_(false) {}
+    : canSocket_(-1), interfaceName_(interface), isInitialized_(false) {}
 
 CANBusInterface::~CANBusInterface() {
     if (canSocket_ >= 0) {
@@ -50,7 +53,6 @@ bool CANBusInterface::setupCANSocket() {
         return false;
     }
 
-    // 设置非阻塞模式
     int flags = fcntl(canSocket_, F_GETFL, 0);
     if (flags == -1) {
         close(canSocket_);
@@ -159,8 +161,9 @@ EngineData CANBusInterface::parseEngineData(const can_frame& frame) {
             break;
     }
 
-    data.timestamp = std::chrono::duration_cast<Timestamp>(
-        std::chrono::system_clock::now().time_since_epoch());
+    data.timestamp = static_cast<Timestamp>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
         
     return data;
 }
@@ -225,7 +228,6 @@ bool CANBusInterface::resetBus() {
     struct ifreq ifr;
     std::strncpy(ifr.ifr_name, interfaceName_.c_str(), IFNAMSIZ - 1);
     
-    // 先关闭接口
     ifr.ifr_flags = 0;
     if (ioctl(canSocket_, SIOCSIFFLAGS, &ifr) < 0) {
         return false;
@@ -233,7 +235,6 @@ bool CANBusInterface::resetBus() {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    // 重新开启接口
     ifr.ifr_flags = IFF_UP | IFF_RUNNING;
     if (ioctl(canSocket_, SIOCSIFFLAGS, &ifr) < 0) {
         return false;
@@ -245,7 +246,6 @@ bool CANBusInterface::resetBus() {
 bool CANBusInterface::setCANFilter() {
     struct can_filter filter[4];
     
-    // 设置J1939消息过滤器
     filter[0].can_id = 0x0CF00000;
     filter[0].can_mask = 0x1FFFF00;
     
@@ -258,8 +258,7 @@ bool CANBusInterface::setCANFilter() {
     filter[3].can_id = CASE_BASE_ID;
     filter[3].can_mask = 0x1FFF0000;
 
-    if (setsockopt(canSocket_, SOL_CAN_RAW, CAN_RAW_FILTER, 
-                  &filter, sizeof(filter)) < 0) {
+    if (setsockopt(canSocket_, SOL_CAN_RAW, CAN_RAW_FILTER, &filter, sizeof(filter)) < 0) {
         std::cerr << "Error setting CAN filter: " << strerror(errno) << std::endl;
         return false;
     }
@@ -267,9 +266,9 @@ bool CANBusInterface::setCANFilter() {
     return true;
 }
 
-uint32_t CANBusInterface::calculateJ1939ID(uint8_t priority, uint8_t pdu_format, 
-                                         uint8_t pdu_specific, uint8_t source_addr) {
+uint32_t CANBusInterface::calculateJ1939ID(uint8_t priority, uint8_t pdu_format, uint8_t pdu_specific, uint8_t source_addr) {
     return (priority << 26) | (pdu_format << 16) | (pdu_specific << 8) | source_addr;
 }
 
 } // namespace VCUCore
+

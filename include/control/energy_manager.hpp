@@ -59,6 +59,7 @@ public:
     
     // 预测集成
     void integrateEnergyPrediction(const PredictionResult& prediction);
+    void updateOptimizationHistory(const EnergyOptimization& result);
     EnergyForecast generateEnergyForecast(const PerceptionData& perception) const;
     
     // 学习功能
