@@ -47,22 +47,22 @@ public:
     SafetyMonitor(uint32_t historySize = 1000, uint32_t checkInterval = 100);
     
     SafetyCheckResult checkSafety(const ControlCommands& commands,
-                                const VehicleState& vehicleState,
+                                const TractorVehicleState& vehicleState,
                                 const SystemHealthStatus& healthStatus);
     
-    bool validateCommands(const ControlCommands& commands, const VehicleState& state);
-    ControlCommands applySafetyLimits(const ControlCommands& commands, const VehicleState& state);
+    bool validateCommands(const ControlCommands& commands, const TractorVehicleState& state);
+    ControlCommands applySafetyLimits(const ControlCommands& commands, const TractorVehicleState& state);
     
     // 风险评估
-    float calculateRiskScore(const VehicleState& state, const EnvironmentData& environment) const;
-    RiskAssessment assessRisk(const VehicleState& state, const PredictionResult& prediction) const;
+    float calculateRiskScore(const TractorVehicleState& state, const EnvironmentData& environment) const;
+    RiskAssessment assessRisk(const TractorVehicleState& state, const PredictionResult& prediction) const;
     
     // 紧急处理
     EmergencyResponse handleEmergency(const SafetyViolation& violation);
     bool triggerEmergencyStop(EmergencyLevel level, const std::string& reason);
     
     // 学习功能
-    void updateSafetyModel(const VehicleState& state, const SafetyViolation& violation);
+    void updateSafetyModel(const TractorVehicleState& state, const SafetyViolation& violation);
     void adjustSafetyLimitsBasedOnExperience();
     
     // 监控功能
@@ -72,19 +72,19 @@ public:
 
 private:
     void initializeDefaultLimits();
-    SafetyCheckResult checkTorqueLimits(const ControlCommands& commands, const VehicleState& state);
-    SafetyCheckResult checkSpeedLimits(const VehicleState& state);
+    SafetyCheckResult checkTorqueLimits(const ControlCommands& commands, const TractorVehicleState& state);
+    SafetyCheckResult checkSpeedLimits(const TractorVehicleState& state);
     SafetyCheckResult checkTemperatureLimits(const SystemHealthStatus& healthStatus);
     SafetyCheckResult checkBatteryLimits(const BatteryData& battery);
-    SafetyCheckResult checkStabilityLimits(const VehicleState& state);
-    SafetyCheckResult checkCollisionRisk(const VehicleState& state, const PerceptionData& perception);
+    SafetyCheckResult checkStabilityLimits(const TractorVehicleState& state);
+    SafetyCheckResult checkCollisionRisk(const TractorVehicleState& state, const PerceptionData& perception);
     
     bool isCriticalViolation(const SafetyViolation& violation) const;
     void logViolation(const SafetyViolation& violation);
     void updateSafetyScore(float newScore);
     
-    ControlCommands limitTorqueCommands(const ControlCommands& commands, const VehicleState& state);
-    ControlCommands limitSpeedCommands(const ControlCommands& commands, const VehicleState& state);
+    ControlCommands limitTorqueCommands(const ControlCommands& commands, const TractorVehicleState& state);
+    ControlCommands limitSpeedCommands(const ControlCommands& commands, const TractorVehicleState& state);
     ControlCommands limitEmergencyCommands(const ControlCommands& commands);
 };
 

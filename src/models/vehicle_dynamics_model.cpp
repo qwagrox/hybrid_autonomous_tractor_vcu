@@ -118,7 +118,7 @@ bool VehicleDynamicsModel::initialize(const std::string& configFile) {
     }
 }
 
-VehicleState VehicleDynamicsModel::updateState(float engineTorque, float motorTorque,
+TractorVehicleState VehicleDynamicsModel::updateState(float engineTorque, float motorTorque,
                                              const Eigen::Vector3d& externalForces,
                                              const Eigen::Vector3d& externalMoments,
                                              float deltaTime, const PerceptionData& perception) {
@@ -328,9 +328,9 @@ float VehicleDynamicsModel::calculateRolloverRisk() const {
     return std::abs(lateralAcceleration) / criticalAcceleration;
 }
 
-VehicleState VehicleDynamicsModel::predictState(float timeHorizon, 
+TractorVehicleState VehicleDynamicsModel::predictState(float timeHorizon, 
                                               const ControlCommands& commands) const {
-    VehicleState predictedState = currentState_;
+    TractorVehicleState predictedState = currentState_;
     
     // 简化的预测模型
     float steps = timeHorizon / 0.1f; // 0.1秒时间步长
@@ -370,7 +370,7 @@ bool VehicleDynamicsModel::validateInput(float torque, const Eigen::Vector3d& fo
     return true;
 }
 
-void VehicleDynamicsModel::applyConstraints(VehicleState& state) {
+void VehicleDynamicsModel::applyConstraints(TractorVehicleState& state) {
     // 速度约束
     float maxSpeed = 40.0f / 3.6f; // 40 km/h -> m/s
     if (state.velocity.norm() > maxSpeed) {
@@ -392,7 +392,7 @@ uint32_t VehicleDynamicsModel::getCurrentTime() const {
         std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
-VehicleState VehicleDynamicsModel::getCurrentState() const {
+TractorVehicleState VehicleDynamicsModel::getCurrentState() const {
     return currentState_;
 }
 

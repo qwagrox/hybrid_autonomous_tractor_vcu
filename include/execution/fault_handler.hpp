@@ -39,7 +39,7 @@ public:
     bool initialize(const std::string& ruleFile = "config/fault_rules.cfg");
     
     // 故障处理
-    std::vector<FaultDiagnosis> detectFaults(const VehicleState& state, 
+    std::vector<FaultDiagnosis> detectFaults(const TractorVehicleState& state, 
                                            const SystemHealthStatus& healthStatus);
     bool handleFaults(const std::vector<FaultDiagnosis>& faults);
     
@@ -68,7 +68,7 @@ private:
     FaultDiagnosis createFaultDiagnosis(uint16_t code, FaultSeverity severity,
                                       const std::string& description, const std::string& component);
     
-    bool checkFaultCondition(const FaultRule& rule, const VehicleState& state,
+    bool checkFaultCondition(const FaultRule& rule, const TractorVehicleState& state,
                            const SystemHealthStatus& healthStatus) const;
     
     void updateFaultState(const FaultDiagnosis& fault);

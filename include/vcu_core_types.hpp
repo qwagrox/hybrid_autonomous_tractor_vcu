@@ -160,28 +160,83 @@ struct SensorData {
     float windSpeed;                // 风速 (m/s)
 };
 
-// 车辆状态结构
-struct VehicleState {
-    Vector3d position;              // 位置 (m)
-    Vector3d velocity;              // 速度 (m/s)
-    Vector3d acceleration;          // 加速度 (m/s²)
+// 拖拉机车辆状态结构 (专为农业拖拉机优化)
+struct TractorVehicleState {
+    // === 基础运动状态 ===
+    Vector3d position;              // GNSS位置 (WGS84坐标)
+    Vector3d velocity;              // 速度向量 (m/s)
+    Vector3d acceleration;          // 加速度向量 (m/s²)
+    
+    // === 姿态信息 (对拖拉机稳定性至关重要) ===
     float heading;                  // 航向角 (rad)
-    float pitch;                    // 俯仰角 (rad)
-    float roll;                     // 横滚角 (rad)
-    float gradeAngle;               // 坡度角 (rad)
-    float wheelSlipRatio;           // 轮滑率
-    float estimatedMass;            // 估计质量 (kg)
-    float drawbarPull;              // 牵引力 (N)
-    float actualTorque;             // 实际扭矩 (Nm)
+    float pitch;                    // 俯仰角 (rad) - 影响农具深度控制
+    float roll;                     // 横滚角 (rad) - 防侧翻关键参数
+    float gradeAngle;               // 坡度角 (rad) - 爬坡能力评估
+    
+    // === 拖拉机核心牵引参数 ===
+    float drawbarPull;              // 牵引力 (N) - 拖拉机最重要性能指标
+    float drawbarPower;             // 牵引功率 (kW) - 有效功率输出
+    float wheelSlipRatio;           // 轮滑率 - 牵引效率指标
+    float tractionEfficiency;       // 牵引效率 (%) - 轮胎-土壤相互作用效率
+    
+    // === 质量和载荷分布 ===
+    float estimatedMass;            // 总质量 (kg) - 包含农具和货物
+    float frontAxleLoad;            // 前桥载荷 (N) - 影响转向和稳定性
+    float rearAxleLoad;             // 后桥载荷 (N) - 影响牵引力
+    float ballastMass;              // 配重质量 (kg) - 优化载荷分配
+    
+    // === 动力系统状态 ===
+    float actualTorque;             // 实际输出扭矩 (Nm)
     float demandedTorque;           // 需求扭矩 (Nm)
-    float powerConsumption;         // 功率消耗 (kW)
-    float fuelConsumption;          // 燃油消耗 (L/h)
-    float energyEfficiency;         // 能量效率 (%)
-    Matrix3d estimationCovariance;  // 估计协方差
-    SystemState systemState;        // 系统状态
-    DriveMode driveMode;            // 驱动模式
-    ControlMode controlMode;        // 控制模式
-    uint32_t timestamp;             // 时间戳
+    float engineLoad;               // 发动机负载率 (%)
+    float pto_rpm;                  // PTO转速 (rpm) - 农具动力输出
+    float pto_torque;               // PTO扭矩 (Nm) - 农具驱动扭矩
+    
+    // === 能耗和效率 (农业作业关键指标) ===
+    float powerConsumption;         // 总功率消耗 (kW)
+    float fuelConsumption;          // 燃油消耗率 (L/h)
+    float energyEfficiency;         // 混合动力系统效率 (%)
+    float specificFuelConsumption;  // 比油耗 (L/ha) - 农业作业效率指标
+    
+    // === 田间作业状态 ===
+    float workingWidth;             // 作业幅宽 (m) - 单次通过作业宽度
+    float workingDepth;             // 作业深度 (m) - 犁耕、播种深度
+    float workingSpeed;             // 作业速度 (km/h) - 田间作业速度
+    float fieldEfficiency;          // 田间效率 (%) - 有效作业时间比例
+    float workedArea;               // 已作业面积 (ha) - 累计作业面积
+    uint32_t workingHours;          // 累计作业时间 (h) - 发动机工作小时
+    
+    // === 稳定性和安全 (拖拉机安全关键) ===
+    float stabilityMargin;          // 稳定性裕度 - 防侧翻安全系数
+    float centerOfGravityHeight;    // 重心高度 (m) - 影响稳定性
+    float turningRadius;            // 最小转弯半径 (m) - 机动性指标
+    bool rolloverRisk;              // 侧翻风险警告 - 安全预警
+    float groundClearance;          // 离地间隙 (m) - 通过性指标
+    
+    // === 液压系统 (农具控制核心) ===
+    float hydraulicPressure;        // 主液压压力 (bar)
+    float hydraulicFlowRate;        // 液压流量 (L/min)
+    float hydraulicOilTemperature;  // 液压油温度 (°C)
+    float hitchHeight;              // 三点悬挂高度 (m)
+    
+    // === 土壤和环境交互 ===
+    float soilCompaction;           // 土壤压实度 (MPa) - 环境影响评估
+    float soilMoisture;             // 土壤湿度 (%) - 作业条件评估
+    float wheelLoadDistribution[4]; // 四轮载荷分配 (N) - [前左,前右,后左,后右]
+    
+    // === 系统状态和控制 ===
+    Matrix3d estimationCovariance;  // 状态估计协方差矩阵
+    SystemState systemState;        // 系统运行状态
+    DriveMode driveMode;            // 驱动模式 (ECO/PLOWING/SEEDING等)
+    ControlMode controlMode;        // 控制模式 (AUTO/MANUAL等)
+    uint32_t timestamp;             // 时间戳 (ms)
+    
+    // === 作业模式标志 ===
+    bool isWorking;                 // 是否在田间作业
+    bool isTransporting;            // 是否在运输模式
+    bool isTurning;                 // 是否在地头转弯
+    bool isPTOEngaged;              // PTO是否接合
+    bool isHydraulicActive;         // 液压系统是否激活
 };
 
 // 控制命令结构
@@ -203,7 +258,7 @@ struct ControlCommands {
 
 // 感知数据结构
 struct PerceptionData {
-    VehicleState vehicleState;      // 车辆状态
+    TractorVehicleState tractorState;  // 拖拉机状态
     float terrainSlope;             // 地形坡度 (rad)
     float soilResistance;           // 土壤阻力 (N)
     float rollingResistance;        // 滚动阻力 (N)

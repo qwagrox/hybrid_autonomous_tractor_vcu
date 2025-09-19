@@ -42,7 +42,7 @@ public:
                 float slopeThreshold = 10.0f);
     
     LoadChangeResult detectLoadChange(const SensorData& sensorData, 
-                                    const VehicleState& vehicleState);
+                                    const TractorVehicleState& vehicleState);
     
     LoadType classifyLoadType(const LoadSignature& signature) const;
     LoadTrend analyzeLoadTrend() const;
@@ -58,7 +58,7 @@ public:
     
 private:
     LoadSignature createLoadSignature(const SensorData& sensorData, 
-                                    const VehicleState& vehicleState) const;
+                                    const TractorVehicleState& vehicleState) const;
     
     bool detectAbruptChange(const LoadSignature& current, 
                           const LoadSignature& previous) const;

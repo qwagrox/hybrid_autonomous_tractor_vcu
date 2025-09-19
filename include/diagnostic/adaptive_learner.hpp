@@ -53,12 +53,12 @@ public:
     
     bool initialize(const std::string& modelPath = "models/learning/");
     void updateModels(const std::vector<SensorData>& sensorData,
-                     const std::vector<VehicleState>& states,
+                     const std::vector<TractorVehicleState>& states,
                      const std::vector<ControlCommands>& commands);
     
     // 强化学习
-    float calculateReward(const VehicleState& previousState,
-                         const VehicleState& currentState,
+    float calculateReward(const TractorVehicleState& previousState,
+                         const TractorVehicleState& currentState,
                          const ControlCommands& commands) const;
     void updateQValues(const LearningExperience& experience);
     void improveControlPolicy();
@@ -82,7 +82,7 @@ private:
     void initializeLearningModels();
     void processExperienceBatch();
     LearningExperience createExperience(const SensorData& sensor,
-                                      const VehicleState& state,
+                                      const TractorVehicleState& state,
                                       const ControlCommands& commands) const;
     
     float predictEfficiencyImprovement(const LearningExperience& experience) const;

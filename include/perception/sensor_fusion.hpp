@@ -31,14 +31,14 @@ private:
 public:
     SensorFusion(size_t historySize = 1000, float innovationThreshold = 3.0f);
     
-    VehicleState fuseSensors(const SensorData& sensorData);
-    PerceptionData generatePerceptionData(const VehicleState& state, const SensorData& sensorData);
+    TractorVehicleState fuseSensors(const SensorData& sensorData);
+    PerceptionData generatePerceptionData(const TractorVehicleState& state, const SensorData& sensorData);
     
     bool checkSensorHealth(const SensorData& data);
     void reset();
     
     // 状态查询
-    VehicleState getCurrentState() const;
+    TractorVehicleState getCurrentState() const;
     float getEstimationUncertainty() const;
     
 private:

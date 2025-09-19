@@ -41,7 +41,7 @@ void SafetyMonitor::initializeDefaultLimits() {
 }
 
 SafetyCheckResult SafetyMonitor::checkSafety(const ControlCommands& commands,
-                                           const VehicleState& vehicleState,
+                                           const TractorVehicleState& vehicleState,
                                            const SystemHealthStatus& healthStatus) {
     
     SafetyCheckResult result;
@@ -79,7 +79,7 @@ SafetyCheckResult SafetyMonitor::checkSafety(const ControlCommands& commands,
     return result;
 }
 
-bool SafetyMonitor::validateCommands(const ControlCommands& commands, const VehicleState& state) {
+bool SafetyMonitor::validateCommands(const ControlCommands& commands, const TractorVehicleState& state) {
     // 快速命令验证
     if (commands.engineTorqueRequest > limits_.maxEngineTorque * 1.1f) {
         return false;
@@ -100,7 +100,7 @@ bool SafetyMonitor::validateCommands(const ControlCommands& commands, const Vehi
     return true;
 }
 
-ControlCommands SafetyMonitor::applySafetyLimits(const ControlCommands& commands, const VehicleState& state) {
+ControlCommands SafetyMonitor::applySafetyLimits(const ControlCommands& commands, const TractorVehicleState& state) {
     ControlCommands safeCommands = commands;
     
     // 应用扭矩限制
@@ -117,7 +117,7 @@ ControlCommands SafetyMonitor::applySafetyLimits(const ControlCommands& commands
     return safeCommands;
 }
 
-SafetyCheckResult SafetyMonitor::checkTorqueLimits(const ControlCommands& commands, const VehicleState& state) {
+SafetyCheckResult SafetyMonitor::checkTorqueLimits(const ControlCommands& commands, const TractorVehicleState& state) {
     SafetyCheckResult result;
     
     // 检查发动机扭矩
@@ -167,7 +167,7 @@ SafetyCheckResult SafetyMonitor::checkTorqueLimits(const ControlCommands& comman
     return result;
 }
 
-SafetyCheckResult SafetyMonitor::checkSpeedLimits(const VehicleState& state) {
+SafetyCheckResult SafetyMonitor::checkSpeedLimits(const TractorVehicleState& state) {
     SafetyCheckResult result;
     
     // 检查车辆速度
@@ -226,7 +226,7 @@ SafetyCheckResult SafetyMonitor::checkTemperatureLimits(const SystemHealthStatus
     return result;
 }
 
-SafetyCheckResult SafetyMonitor::checkStabilityLimits(const VehicleState& state) {
+SafetyCheckResult SafetyMonitor::checkStabilityLimits(const TractorVehicleState& state) {
     SafetyCheckResult result;
     
     // 检查侧倾风险
@@ -262,7 +262,7 @@ SafetyCheckResult SafetyMonitor::checkStabilityLimits(const VehicleState& state)
     return result;
 }
 
-ControlCommands SafetyMonitor::limitTorqueCommands(const ControlCommands& commands, const VehicleState& state) {
+ControlCommands SafetyMonitor::limitTorqueCommands(const ControlCommands& commands, const TractorVehicleState& state) {
     ControlCommands limited = commands;
     
     // 限制发动机扭矩
@@ -295,7 +295,7 @@ ControlCommands SafetyMonitor::limitEmergencyCommands(const ControlCommands& com
     return emergencyCommands;
 }
 
-float SafetyMonitor::calculateRiskScore(const VehicleState& state, const EnvironmentData& environment) const {
+float SafetyMonitor::calculateRiskScore(const TractorVehicleState& state, const EnvironmentData& environment) const {
     float score = 0.0f;
     
     // 速度风险

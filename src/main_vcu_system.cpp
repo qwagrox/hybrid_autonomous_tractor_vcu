@@ -69,7 +69,7 @@ private:
     std::thread diagnosticThread_;
     
     SystemConfig systemConfig_;
-    VehicleState currentState_;
+    TractorVehicleState currentState_;
     ControlCommands currentCommands_;
     SystemHealthStatus healthStatus_;
     PerformanceStatistics performanceStats_;
@@ -81,8 +81,8 @@ private:
     std::condition_variable cv_;
 
     // 数据缓冲区
-    std::deque<SensorData> sensorDataBuffer_;
-    std::deque<VehicleState> stateBuffer_;
+    TractorVehicleState currentState_;
+    std::deque<TractorVehicleState> stateBuffer_;
     std::deque<ControlCommands> commandBuffer_;
 
 public:
@@ -443,7 +443,7 @@ private:
         
         // 传感器融合
         if (sensorFusion_) {
-            VehicleState state = sensorFusion_->fuseSensors(sensorData);
+            TractorVehicleState state = sensorFusion_->fuseSensors(sensorData);
             perception = sensorFusion_->generatePerceptionData(state, sensorData);
             
             // 更新当前状态
@@ -790,7 +790,7 @@ private:
                 sensorDataBuffer_.end()
             );
             
-            std::vector<VehicleState> recentStates(
+            std::vector<TractorVehicleState> recentStates(
                 stateBuffer_.begin(), 
                 stateBuffer_.end()
             );

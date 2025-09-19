@@ -46,7 +46,7 @@ private:
     };
     
     // 车辆状态
-    struct VehicleState {
+    struct TractorVehicleState {
         // 运动状态
         Eigen::Vector3d position;       // 位置 (m)
         Eigen::Vector3d velocity;       // 速度 (m/s)
@@ -77,8 +77,8 @@ private:
     };
     
     VehicleParameters params_;
-    VehicleState currentState_;
-    VehicleState previousState_;
+    TractorVehicleState currentState_;
+    TractorVehicleState previousState_;
     
     // 地形参数
     float currentSlope_;
@@ -91,7 +91,7 @@ private:
     Eigen::Matrix4f stiffnessMatrix_;
     
     // 历史数据
-    std::deque<VehicleState> stateHistory_;
+    std::deque<TractorVehicleState> stateHistory_;
     std::deque<Eigen::Vector3d> forceHistory_;
     std::deque<Eigen::Vector3d> momentHistory_;
     
@@ -112,7 +112,7 @@ public:
     void setTerrainParameters(float slope, float friction, float roughness);
     
     // 状态更新
-    VehicleState updateState(float engineTorque, float motorTorque, 
+    TractorVehicleState updateState(float engineTorque, float motorTorque, 
                            const Eigen::Vector3d& externalForces,
                            const Eigen::Vector3d& externalMoments,
                            float deltaTime, const PerceptionData& perception);
@@ -136,18 +136,18 @@ public:
     bool checkStabilityLimits() const;
     
     // 预测功能
-    VehicleState predictState(float timeHorizon, const ControlCommands& commands) const;
+    TractorVehicleState predictState(float timeHorizon, const ControlCommands& commands) const;
     float predictStoppingDistance(float deceleration) const;
     float predictMaxSpeed(float slope, float headwind) const;
     float predictGradeability(float speed) const;
     
     // 性能计算
-    float calculatePowerRequirements(const VehicleState& state) const;
+    float calculatePowerRequirements(const TractorVehicleState& state) const;
     float calculateEnergyConsumption(float power, float time, float efficiency) const;
     float calculateEnergyRecoveryPotential(float deceleration) const;
     
     // 获取状态
-    VehicleState getCurrentState() const;
+    TractorVehicleState getCurrentState() const;
     VehicleParameters getParameters() const;
     DynamicsStatistics getStatistics() const;
     
@@ -184,14 +184,14 @@ private:
     
     // 辅助函数
     bool validateInput(float torque, const Eigen::Vector3d& forces) const;
-    void updateHistory(const VehicleState& state);
-    void applyConstraints(VehicleState& state);
+    void updateHistory(const TractorVehicleState& state);
+    void applyConstraints(TractorVehicleState& state);
     void handleNumericalStability();
     
     // 学习算法
     void estimateVehicleMass();
     void estimateRoadFriction();
-    void updateAdaptiveModel(const VehicleState& measuredState);
+    void updateAdaptiveModel(const TractorVehicleState& measuredState);
 };
 
 // 动力学统计信息

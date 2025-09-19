@@ -67,7 +67,7 @@ bool FaultHandler::initialize(const std::string& ruleFile) {
     return true;
 }
 
-std::vector<FaultDiagnosis> FaultHandler::detectFaults(const VehicleState& state,
+std::vector<FaultDiagnosis> FaultHandler::detectFaults(const TractorVehicleState& state,
                                                      const SystemHealthStatus& healthStatus) {
     
     std::vector<FaultDiagnosis> detectedFaults;
@@ -230,7 +230,7 @@ void FaultHandler::resolveFault(uint16_t faultCode) {
     }
 }
 
-bool FaultHandler::checkFaultCondition(const FaultRule& rule, const VehicleState& state,
+bool FaultHandler::checkFaultCondition(const FaultRule& rule, const TractorVehicleState& state,
                                     const SystemHealthStatus& healthStatus) const {
     
     // 简化实现：实际中需要解析条件表达式

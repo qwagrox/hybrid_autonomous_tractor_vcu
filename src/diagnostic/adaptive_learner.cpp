@@ -56,7 +56,7 @@ bool AdaptiveLearner::initialize(const std::string& modelPath) {
 }
 
 void AdaptiveLearner::updateModels(const std::vector<SensorData>& sensorData,
-                                 const std::vector<VehicleState>& states,
+                                 const std::vector<TractorVehicleState>& states,
                                  const std::vector<ControlCommands>& commands) {
     
     if (sensorData.empty() || states.empty() || commands.empty()) {
@@ -97,7 +97,7 @@ void AdaptiveLearner::updateModels(const std::vector<SensorData>& sensorData,
 }
 
 LearningExperience AdaptiveLearner::createExperience(const SensorData& sensor,
-                                                   const VehicleState& state,
+                                                   const TractorVehicleState& state,
                                                    const ControlCommands& commands) const {
     
     LearningExperience exp;
@@ -105,7 +105,7 @@ LearningExperience AdaptiveLearner::createExperience(const SensorData& sensor,
     exp.timestamp = sensor.timestamp;
     exp.state = state;
     exp.commands = commands;
-    exp.reward = calculateReward(VehicleState{}, state, commands); // 需要前一个状态
+    exp.reward = calculateReward(TractorVehicleState{}, state, commands); // 需要前一个状态
     
     // 提取特征
     exp.features.push_back(state.velocity.norm());
@@ -118,8 +118,8 @@ LearningExperience AdaptiveLearner::createExperience(const SensorData& sensor,
     return exp;
 }
 
-float AdaptiveLearner::calculateReward(const VehicleState& previousState,
-                                     const VehicleState& currentState,
+float AdaptiveLearner::calculateReward(const TractorVehicleState& previousState,
+                                     const TractorVehicleState& currentState,
                                      const ControlCommands& commands) const {
     
     float reward = 0.0f;
