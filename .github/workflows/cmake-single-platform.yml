@@ -33,8 +33,7 @@ jobs:
         path: |
           ~/.cache/vcpkg
           /var/cache/apt
-          /opt/acado
-        key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}-acado-prebuilt
+        key: ${{ runner.os }}-deps-${{ hashFiles('**/CMakeLists.txt') }}
         restore-keys: |
           ${{ runner.os }}-deps-
 
@@ -50,36 +49,13 @@ jobs:
           ninja-build \
           pkg-config \
           wget \
-          git \
-          unzip \
-          curl
+          git
 
     - name: Install Eigen3
       run: |
         echo "Installing Eigen3..."
         sudo apt-get install -y libeigen3-dev
         
-        # 验证安装
-        if [ -d "/usr/include/eigen3" ]; then
-          echo "✓ Eigen3 headers found at /usr/include/eigen3"
-          ls -la /usr/include/eigen3/
-        else
-          echo "✗ Eigen3 headers not found, trying alternative installation..."
-          
-          # 如果apt安装失败，从源码编译安装
-          cd /tmp
-          wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-          tar -xzf eigen-3.4.0.tar.gz
-          cd eigen-3.4.0
-          mkdir build && cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
-          sudo make install
-          
-          # 创建符号链接到标准位置
-          sudo ln -sf /usr/local/include/eigen3 /usr/include/eigen3
-        fi
-        
-        # 最终验证
         if [ -f "/usr/include/eigen3/Eigen/Dense" ]; then
           echo "✓ Eigen3 installation verified"
         else
@@ -87,119 +63,15 @@ jobs:
           exit 1
         fi
 
-    - name: Install ACADO dependencies
+    - name: Try install ACADO from package manager
       run: |
-        sudo apt-get install -y \
-          libboost-all-dev \
-          liblapack-dev \
-          libblas-dev \
-          gfortran
-
-    - name: Install prebuilt ACADO Toolkit
-      run: |
-        echo "Installing prebuilt ACADO Toolkit..."
+        echo "Trying to install ACADO..."
+        sudo apt-get install -y libacado-dev || echo "ACADO package not available"
         
-        # 检查缓存
-        if [ -d "/opt/acado" ] && [ -f "/opt/acado/include/acado_toolkit.hpp" ]; then
-          echo "✓ ACADO found in cache"
+        if [ -f "/usr/include/acado_toolkit.hpp" ]; then
+          echo "✓ ACADO found"
         else
-          echo "Downloading prebuilt ACADO..."
-          
-          # 创建安装目录
-          sudo mkdir -p /opt/acado
-          cd /tmp
-          
-          # 方法1: 尝试从Ubuntu PPA安装
-          echo "Trying Ubuntu PPA..."
-          sudo add-apt-repository -y ppa:acado-team/acado || echo "PPA not available"
-          sudo apt-get update || echo "Update failed"
-          sudo apt-get install -y libacado-dev acado-toolkit || echo "Package installation failed"
-          
-          # 检查PPA安装是否成功
-          if [ -f "/usr/include/acado_toolkit.hpp" ]; then
-            echo "✓ ACADO installed via PPA"
-          else
-            echo "PPA installation failed, creating minimal ACADO headers..."
-            
-            # 创建最小的ACADO头文件
-            sudo mkdir -p /opt/acado/include
-            
-            # 创建acado_toolkit.hpp
-            sudo bash -c 'cat > /opt/acado/include/acado_toolkit.hpp << "HEADER_EOF"
-#pragma once
-// Minimal ACADO headers for compilation compatibility
-#include <vector>
-#include <memory>
-
-namespace ACADO {
-    class VariablesGrid {
-    public:
-        VariablesGrid() = default;
-    };
-    
-    class DVector {
-    public:
-        DVector() = default;
-    };
-    
-    class RealTimeAlgorithm {
-    public:
-        RealTimeAlgorithm() = default;
-    };
-    
-    class StaticReferenceTrajectory {
-    public:
-        StaticReferenceTrajectory() = default;
-    };
-    
-    class Controller {
-    public:
-        Controller() = default;
-    };
-    
-    class DifferentialEquation {
-    public:
-        DifferentialEquation() = default;
-    };
-    
-    class Function {
-    public:
-        Function() = default;
-    };
-    
-    class OCP {
-    public:
-        OCP() = default;
-    };
-}
-HEADER_EOF'
-            
-            # 创建acado_gnuplot.hpp
-            sudo bash -c 'cat > /opt/acado/include/acado_gnuplot.hpp << "GNUPLOT_EOF"
-#pragma once
-// Minimal ACADO gnuplot headers
-namespace ACADO {
-    // Placeholder for gnuplot functionality
-}
-GNUPLOT_EOF'
-            
-            echo "✓ Minimal ACADO headers created"
-          fi
-        fi
-        
-        # 设置环境变量和符号链接
-        if [ -d "/opt/acado" ]; then
-          sudo ln -sf /opt/acado/include/* /usr/local/include/ 2>/dev/null || true
-          sudo ln -sf /opt/acado/lib/* /usr/local/lib/ 2>/dev/null || true
-        fi
-        
-        # 最终验证
-        if [ -f "/usr/include/acado_toolkit.hpp" ] || [ -f "/usr/local/include/acado_toolkit.hpp" ] || [ -f "/opt/acado/include/acado_toolkit.hpp" ]; then
-          echo "✓ ACADO Toolkit installation verified"
-          find /usr -name "acado_toolkit.hpp" 2>/dev/null || find /opt -name "acado_toolkit.hpp" 2>/dev/null
-        else
-          echo "✗ ACADO Toolkit installation failed"
-          exit 1
+          echo "⚠️ ACADO not available, will build without ACADO support"
         fi
 
     - name: Install other dependencies
@@ -223,7 +95,7 @@ GNUPLOT_EOF'
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           -DCMAKE_CXX_STANDARD=17 \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          -DCMAKE_PREFIX_PATH="/usr/local;/opt/acado" \
+          -DWITHOUT_ACADO=ON \
           -G Ninja
 
     - name: Build project
