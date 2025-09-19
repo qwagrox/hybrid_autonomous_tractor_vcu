@@ -1,8 +1,8 @@
-# VCU仿真测试系统架构设计
+# VCU仿真测试(SIL)系统架构设计
 
 **版本**: 1.0  
-**作者**: tangyong@agrox.cloud  
-**日期**: 2024/09/18
+**作者**: tangyong@stmail.ujs.edu.cn  
+**日期**: 2024/09/19
 
 ## 1. 概述
 
