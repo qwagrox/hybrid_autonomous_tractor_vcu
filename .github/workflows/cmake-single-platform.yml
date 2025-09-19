@@ -63,16 +63,15 @@ jobs:
           exit 1
         fi
 
-    - name: Try install ACADO from package manager
+    - name: Install acados
       run: |
-        echo "Trying to install ACADO..."
-        sudo apt-get install -y libacado-dev || echo "ACADO package not available"
-        
-        if [ -f "/usr/include/acado_toolkit.hpp" ]; then
-          echo "✓ ACADO found"
-        else
-          echo "⚠️ ACADO not available, will build without ACADO support"
-        fi
+        git clone https://github.com/acados/acados.git
+        cd acados
+        mkdir build
+        cd build
+        cmake .. -DACADOS_INSTALL_DIR=$(pwd)/install
+        make install
+        export ACADOS_SOURCE_DIR=$(pwd)/install # Set for Python interface
 
     - name: Install other dependencies
       run: |
