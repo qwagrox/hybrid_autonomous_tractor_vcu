@@ -264,7 +264,121 @@ struct MotorState {
 };
 
 struct BatteryState {
-    // Placeholder
+    float stateOfCharge;
+    float stateOfHealth;
+    float voltage;
+    float current;
+    float temperature;
+    float power;
+    uint32_t cycleCount;
+    bool isCharging;
+    bool isDischarging;
+    uint64_t timestamp;
+};
+
+struct EnergyState {
+    BatteryState battery;
+    EngineState engine;
+    MotorState motor;
+    float totalPowerDemand;
+    float totalPowerGenerated;
+    float energyEfficiency;
+    uint64_t timestamp;
+};
+
+struct PowerFlow {
+    float enginePower;
+    float motorPower;
+    float batteryPower;
+    float auxiliaryPower;
+    float totalPower;
+    float efficiency;
+    uint64_t timestamp;
+};
+
+struct EnergyOptimization {
+    PowerFlow optimalFlow;
+    float costSavings;
+    float efficiencyGain;
+    float batteryLifeImpact;
+    bool isValid;
+    uint64_t timestamp;
+};
+
+struct ChargingStrategy {
+    bool shouldCharge;
+    float targetSOC;
+    float chargingRate;
+    uint32_t estimatedTime;
+    uint64_t timestamp;
+};
+
+struct EnergyForecast {
+    float predictedConsumption;
+    float predictedGeneration;
+    float predictedSOC;
+    uint32_t forecastHorizon;
+    float confidence;
+    uint64_t timestamp;
+};
+
+struct OptimizationResult {
+    EnergyOptimization optimization;
+    float actualSavings;
+    float actualEfficiency;
+    bool wasSuccessful;
+    uint64_t timestamp;
+};
+
+struct FaultStatistics {
+    uint32_t totalFaults;
+    uint32_t activeFaults;
+    uint32_t resolvedFaults;
+    float averageResolutionTime;
+    uint64_t timestamp;
+};
+
+struct FaultTrend {
+    uint32_t faultCode;
+    float frequency;
+    float severity;
+    bool isIncreasing;
+    uint64_t timestamp;
+};
+
+enum class LoadChangeType : uint8_t {
+    NONE,
+    ABRUPT,
+    GRADUAL,
+    CYCLIC
+};
+
+enum class LoadType : uint8_t {
+    LIGHT_IMPLEMENT,
+    MEDIUM_IMPLEMENT,
+    HEAVY_IMPLEMENT,
+    TRANSPORT
+};
+
+enum class TrendDirection : uint8_t {
+    STABLE,
+    INCREASING,
+    DECREASING
+};
+
+struct LoadChangeResult {
+    bool hasChanged;
+    LoadChangeType changeType;
+    float magnitude;
+    float confidence;
+    uint64_t timestamp;
+};
+
+struct LoadTrend {
+    TrendDirection direction;
+    float rate;
+    float confidence;
+    uint32_t duration;
 };
 
 } // namespace VCUCore

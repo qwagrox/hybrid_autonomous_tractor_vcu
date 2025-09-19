@@ -80,9 +80,8 @@ private:
     
     bool canAutoRecover(uint16_t faultCode) const;
     uint32_t getRecoveryTimeout(uint16_t faultCode) const;
+    bool handleSingleFault(const FaultDiagnosis& fault);
 };
 
 } // namespace VCUCore
-
-bool handleSingleFault(const FaultDiagnosis& fault);
 

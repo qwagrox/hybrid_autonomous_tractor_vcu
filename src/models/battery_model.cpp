@@ -1,5 +1,5 @@
 // src/models/battery_model.cpp
-#include "battery_model.hpp"
+#include "models/battery_model.hpp"
 #include <fstream>
 #include <sstream>
 #include <iostream>

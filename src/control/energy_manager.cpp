@@ -17,9 +17,18 @@ EnergyOptimization EnergyManager::optimizeEnergyUsage(const ControlCommands& cur
     (void)prediction;
     
     EnergyOptimization optimization;
-    optimization.engineTorque = 200.0f; // 简化实现
-    optimization.motorTorque = 100.0f;
-    optimization.batteryCurrent = -50.0f;
+    optimization.optimalFlow.enginePower = 200.0f; // 简化实现
+    optimization.optimalFlow.motorPower = 100.0f;
+    optimization.optimalFlow.batteryPower = -50.0f;
+    optimization.optimalFlow.auxiliaryPower = 10.0f;
+    optimization.optimalFlow.totalPower = 260.0f;
+    optimization.optimalFlow.efficiency = 0.88f;
+    optimization.optimalFlow.timestamp = 0; // 临时设置
+    optimization.costSavings = 15.0f;
+    optimization.efficiencyGain = 0.05f;
+    optimization.batteryLifeImpact = 0.02f;
+    optimization.isValid = true;
+    optimization.timestamp = 0; // 临时设置
     
     return optimization;
 }
@@ -35,8 +44,10 @@ PowerFlow EnergyManager::calculateOptimalPowerFlow(float powerDemand, float batt
     flow.enginePower = 100.0f;
     flow.motorPower = 50.0f;
     flow.batteryPower = -20.0f;
-    flow.brakePower = 0.0f;
-    flow.totalPowerDemand = 130.0f;
+    flow.auxiliaryPower = 0.0f;
+    flow.totalPower = 130.0f;
+    flow.efficiency = 0.85f;
+    flow.timestamp = 0; // 简化实现
     
     return flow;
 }
@@ -47,16 +58,25 @@ ChargingStrategy EnergyManager::determineChargingStrategy(float batterySOC, floa
     (void)powerDemand;
     (void)prediction;
     
-    return ChargingStrategy::NONE;
+    ChargingStrategy strategy;
+    strategy.shouldCharge = false;
+    strategy.targetSOC = 0.8f;
+    strategy.chargingRate = 0.0f;
+    strategy.estimatedTime = 0;
+    strategy.timestamp = 0; // 简化实现
+    return strategy;
 }
 
 EnergyForecast EnergyManager::generateEnergyForecast(const PerceptionData& perception) const {
     (void)perception;
     
     EnergyForecast forecast;
-    forecast.predictedPowerDemand = 120.0f;
-    forecast.predictedBrakingPower = 10.0f;
-    forecast.timeHorizon = 60.0f;
+    forecast.predictedConsumption = 120.0f;
+    forecast.predictedGeneration = 10.0f;
+    forecast.predictedSOC = 0.75f;
+    forecast.forecastHorizon = 60;
+    forecast.confidence = 0.85f;
+    forecast.timestamp = 0; // 简化实现
     
     return forecast;
 }
@@ -75,9 +95,18 @@ EnergyOptimization EnergyManager::solveOptimizationProblem(const EnergyState& cu
     (void)forecast;
     
     EnergyOptimization optimization;
-    optimization.engineTorque = 200.0f;
-    optimization.motorTorque = 100.0f;
-    optimization.batteryCurrent = -50.0f;
+    optimization.optimalFlow.enginePower = 200.0f;
+    optimization.optimalFlow.motorPower = 100.0f;
+    optimization.optimalFlow.batteryPower = -50.0f;
+    optimization.optimalFlow.auxiliaryPower = 10.0f;
+    optimization.optimalFlow.totalPower = 260.0f;
+    optimization.optimalFlow.efficiency = 0.88f;
+    optimization.optimalFlow.timestamp = 0; // 简化实现
+    optimization.costSavings = 15.0f;
+    optimization.efficiencyGain = 0.05f;
+    optimization.batteryLifeImpact = 0.02f;
+    optimization.isValid = true;
+    optimization.timestamp = 0; // 简化实现
     
     return optimization;
 }
