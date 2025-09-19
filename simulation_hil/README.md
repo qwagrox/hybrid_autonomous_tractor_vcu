@@ -24,7 +24,7 @@ enhanced_hil_documentation_package/
 ├── testing/                           # 测试计划文档
 │   └── hil_test_plan_v1.md           # HIL测试计划与验证方案
 └── images/                            # 相关图表和图片
-    ├── hil_architecture_v1.png        # HIL系统架构图
+    ├── hil_architecture_v2.png        # HIL系统架构图
     ├── hil_system_integration.png     # 系统集成架构图
     └── cvt_motor_simulation_detail.png # CVT和电机仿真详细连接图
 ```
