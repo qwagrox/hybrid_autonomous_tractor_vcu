@@ -1,7 +1,7 @@
 # 混合动力自主作业拖拉机智能整车控制器
 
 - **版本**: 1.0
-- **作者**: tangyong@stmail.ujs.edu.cn ， 目前就读江苏大学农机控制理论与工程博士
+- **作者**: tangyong@stmail.ujs.edu.cn ， 目前就读于江苏大学农机控制理论与工程博士
 - **日期**: 2025/09/20
 
 ## 1. 项目概述
@@ -65,6 +65,7 @@ cd hybrid_autonomous_tractor_vcu
 cd build/
 ./bin/unit_tests
 ```
+
 ## 5. 仿真子系统
 
 1. 查看 [仿真子系统设计架构](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/docs/%E4%BB%BF%E7%9C%9F%E5%AD%90%E7%B3%BB%E7%BB%9F/simulation_architecture.md)
