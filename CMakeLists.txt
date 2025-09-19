@@ -3,9 +3,6 @@ project(vcu_main)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# 设置CMake模块路径
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 # 查找Eigen3
 set(EIGEN3_FOUND FALSE)
 
@@ -53,36 +50,55 @@ if(NOT EIGEN3_FOUND)
     message(FATAL_ERROR "Eigen3 not found! Please install libeigen3-dev.")
 endif()
 
-# 查找ACADO Toolkit
-find_package(ACADO QUIET)
-if(NOT ACADO_FOUND)
-    # 手动查找ACADO
-    find_path(ACADO_INCLUDE_DIR 
-        NAMES acado_toolkit.hpp
-        PATHS 
-            /usr/local/include
-            /usr/include
-            /opt/acado/include
-        PATH_SUFFIXES acado
+# 查找预编译的ACADO Toolkit
+set(ACADO_FOUND FALSE)
+
+# 查找ACADO头文件的多个可能位置
+set(ACADO_SEARCH_PATHS
+    "/usr/include"
+    "/usr/local/include" 
+    "/opt/acado/include"
+    "/opt/local/include"
+)
+
+foreach(SEARCH_PATH ${ACADO_SEARCH_PATHS})
+    if(EXISTS "${SEARCH_PATH}/acado_toolkit.hpp")
+        message(STATUS "Found ACADO headers at: ${SEARCH_PATH}")
+        set(ACADO_FOUND TRUE)
+        set(ACADO_INCLUDE_DIRS ${SEARCH_PATH})
+        break()
+    endif()
+endforeach()
+
+# 查找ACADO库文件
+if(ACADO_FOUND)
+    set(ACADO_LIBRARY_PATHS
+        "/usr/lib"
+        "/usr/local/lib"
+        "/opt/acado/lib"
+        "/opt/local/lib"
     )
     
     find_library(ACADO_LIBRARY
-        NAMES acado_toolkit acado
-        PATHS
-            /usr/local/lib
-            /usr/lib
-            /opt/acado/lib
+        NAMES acado_toolkit acado libacado
+        PATHS ${ACADO_LIBRARY_PATHS}
+        PATH_SUFFIXES x86_64-linux-gnu
     )
     
-    if(ACADO_INCLUDE_DIR AND ACADO_LIBRARY)
-        set(ACADO_FOUND TRUE)
-        set(ACADO_INCLUDE_DIRS ${ACADO_INCLUDE_DIR})
+    if(ACADO_LIBRARY)
         set(ACADO_LIBRARIES ${ACADO_LIBRARY})
-        message(STATUS "Found ACADO at: ${ACADO_INCLUDE_DIR}")
+        message(STATUS "Found ACADO library: ${ACADO_LIBRARY}")
     else()
-        message(WARNING "ACADO not found. Some features may be disabled.")
-        set(ACADO_FOUND FALSE)
+        message(STATUS "ACADO library not found, using header-only mode")
+        set(ACADO_LIBRARIES "")
     endif()
+endif()
+
+if(ACADO_FOUND)
+    message(STATUS "ACADO Toolkit found and will be used")
+    add_definitions(-DWITH_ACADO)
+else()
+    message(WARNING "ACADO Toolkit not found. Building without ACADO support.")
 endif()
 
 # 查找其他依赖
@@ -96,7 +112,6 @@ include_directories(
 
 if(ACADO_FOUND)
     include_directories(${ACADO_INCLUDE_DIRS})
-    add_definitions(-DWITH_ACADO)
 endif()
 
 # 主程序
@@ -139,7 +154,7 @@ target_link_libraries(vcu_main
     pthread
 )
 
-if(ACADO_FOUND)
+if(ACADO_FOUND AND ACADO_LIBRARIES)
     target_link_libraries(vcu_main ${ACADO_LIBRARIES})
 endif()
 
@@ -181,6 +196,6 @@ target_link_libraries(system_test
     pthread
 )
 
-if(ACADO_FOUND)
+if(ACADO_FOUND AND ACADO_LIBRARIES)
     target_link_libraries(system_test ${ACADO_LIBRARIES})
 endif()
