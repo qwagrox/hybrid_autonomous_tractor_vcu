@@ -3,6 +3,9 @@ project(vcu_main)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# 选项：是否禁用ACADO
+option(WITHOUT_ACADO "Build without ACADO support" OFF)
+
 # 查找Eigen3
 set(EIGEN3_FOUND FALSE)
 
@@ -50,55 +53,27 @@ if(NOT EIGEN3_FOUND)
     message(FATAL_ERROR "Eigen3 not found! Please install libeigen3-dev.")
 endif()
 
-# 查找预编译的ACADO Toolkit
+# 查找ACADO（如果未禁用）
 set(ACADO_FOUND FALSE)
-
-# 查找ACADO头文件的多个可能位置
-set(ACADO_SEARCH_PATHS
-    "/usr/include"
-    "/usr/local/include" 
-    "/opt/acado/include"
-    "/opt/local/include"
-)
-
-foreach(SEARCH_PATH ${ACADO_SEARCH_PATHS})
-    if(EXISTS "${SEARCH_PATH}/acado_toolkit.hpp")
-        message(STATUS "Found ACADO headers at: ${SEARCH_PATH}")
+if(NOT WITHOUT_ACADO)
+    find_path(ACADO_INCLUDE_DIR 
+        NAMES acado_toolkit.hpp
+        PATHS 
+            /usr/include
+            /usr/local/include
+            /opt/acado/include
+    )
+    
+    if(ACADO_INCLUDE_DIR)
         set(ACADO_FOUND TRUE)
-        set(ACADO_INCLUDE_DIRS ${SEARCH_PATH})
-        break()
-    endif()
-endforeach()
-
-# 查找ACADO库文件
-if(ACADO_FOUND)
-    set(ACADO_LIBRARY_PATHS
-        "/usr/lib"
-        "/usr/local/lib"
-        "/opt/acado/lib"
-        "/opt/local/lib"
-    )
-    
-    find_library(ACADO_LIBRARY
-        NAMES acado_toolkit acado libacado
-        PATHS ${ACADO_LIBRARY_PATHS}
-        PATH_SUFFIXES x86_64-linux-gnu
-    )
-    
-    if(ACADO_LIBRARY)
-        set(ACADO_LIBRARIES ${ACADO_LIBRARY})
-        message(STATUS "Found ACADO library: ${ACADO_LIBRARY}")
+        set(ACADO_INCLUDE_DIRS ${ACADO_INCLUDE_DIR})
+        message(STATUS "Found ACADO at: ${ACADO_INCLUDE_DIR}")
+        add_definitions(-DWITH_ACADO)
     else()
-        message(STATUS "ACADO library not found, using header-only mode")
-        set(ACADO_LIBRARIES "")
+        message(STATUS "ACADO not found, building without ACADO support")
     endif()
-endif()
-
-if(ACADO_FOUND)
-    message(STATUS "ACADO Toolkit found and will be used")
-    add_definitions(-DWITH_ACADO)
 else()
-    message(WARNING "ACADO Toolkit not found. Building without ACADO support.")
+    message(STATUS "ACADO support disabled by WITHOUT_ACADO option")
 endif()
 
 # 查找其他依赖
@@ -144,19 +119,19 @@ add_executable(vcu_main
     src/utils/tractor_state_calculator.cpp
 )
 
-# 链接库
+# 收集所有需要链接的库
+set(VCU_LIBRARIES pthread)
+
+# 添加Eigen3库
 if(TARGET ${EIGEN3_TARGET})
-    target_link_libraries(vcu_main PRIVATE ${EIGEN3_TARGET})
+    list(APPEND VCU_LIBRARIES ${EIGEN3_TARGET})
 endif()
 
-target_link_libraries(vcu_main
-    ${GTEST_LIBRARIES}
-    pthread
-)
+# 添加GTest库
+list(APPEND VCU_LIBRARIES ${GTEST_LIBRARIES})
 
-if(ACADO_FOUND AND ACADO_LIBRARIES)
-    target_link_libraries(vcu_main ${ACADO_LIBRARIES})
-endif()
+# 一次性链接所有库到主程序
+target_link_libraries(vcu_main PRIVATE ${VCU_LIBRARIES})
 
 # 系统测试
 add_executable(system_test
@@ -188,14 +163,5 @@ add_executable(system_test
     src/utils/tractor_state_calculator.cpp
 )
 
-if(TARGET ${EIGEN3_TARGET})
-    target_link_libraries(system_test PRIVATE ${EIGEN3_TARGET})
-endif()
-
-target_link_libraries(system_test
-    pthread
-)
-
-if(ACADO_FOUND AND ACADO_LIBRARIES)
-    target_link_libraries(system_test ${ACADO_LIBRARIES})
-endif()
+# 一次性链接所有库到测试程序
+target_link_libraries(system_test PRIVATE pthread)
