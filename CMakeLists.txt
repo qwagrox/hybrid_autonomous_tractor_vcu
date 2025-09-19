@@ -3,13 +3,19 @@ project(vcu_main)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# 修复Eigen3依赖问题 - 使用NO_MODULE强制使用Config模式
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+# 使用PkgConfig方法查找Eigen3 - 在CI环境中更可靠
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(EIGEN3 REQUIRED eigen3)
+
 find_package(GTest REQUIRED)
 
 include_directories(
     include
+    ${EIGEN3_INCLUDE_DIRS}
 )
+
+# 添加编译器标志
+add_compile_options(${EIGEN3_CFLAGS_OTHER})
 
 add_executable(vcu_main
     src/main_vcu_system.cpp
@@ -40,9 +46,8 @@ add_executable(vcu_main
     src/utils/tractor_state_calculator.cpp
 )
 
-# 使用现代CMake方式链接Eigen3
-target_link_libraries(vcu_main PRIVATE
-    Eigen3::Eigen
+target_link_libraries(vcu_main
+    ${EIGEN3_LIBRARIES}
     ${GTEST_LIBRARIES}
     pthread
 )
@@ -77,7 +82,7 @@ add_executable(system_test
     src/utils/tractor_state_calculator.cpp
 )
 
-target_link_libraries(system_test PRIVATE
-    Eigen3::Eigen
+target_link_libraries(system_test
+    ${EIGEN3_LIBRARIES}
     pthread
 )
