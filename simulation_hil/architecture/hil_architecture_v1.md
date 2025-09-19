@@ -24,7 +24,7 @@
 
 这些新增模块使得HIL系统能够精确模拟混合动力系统在各种工况下的动态响应，为VCU控制策略的开发和验证提供了强大的支持。
 
-![增强型HIL系统架构图](./hil_architecture_v2.png)
+![HIL系统架构图](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/simulation_hil/images/hil_architecture_v2.png)
 
 上图展示了集成了CVT和电机仿真模块后的增强型HIL系统架构。该架构的核心是dSPACE SCALEXIO实时仿真平台，它与测试PC和真实的VCU硬件相连，构成一个闭环的测试环境。
 
