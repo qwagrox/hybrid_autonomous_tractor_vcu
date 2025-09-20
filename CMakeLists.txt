@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(vcu_main)
-set(CMAKE_CXX_STANDARD 17)
+
+# 设置C++标准为20（libmpc++需要C++20）
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 查找Eigen3
 set(EIGEN3_FOUND FALSE)
@@ -72,7 +75,7 @@ if(NOT WITHOUT_LIBMPC)
 endif()
 
 if(LIBMPC_FOUND)
-    message(STATUS "libmpc++ found and will be used")
+    message(STATUS "libmpc++ found and will be used with C++20")
 else()
     message(STATUS "libmpc++ not found, building without MPC support")
 endif()
@@ -190,3 +193,13 @@ target_compile_options(system_test PRIVATE
     -Wno-unused-variable
     -Wno-narrowing
 )
+
+# 输出配置信息
+message(STATUS "=== VCU Build Configuration ===")
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "Eigen3 Found: ${EIGEN3_FOUND}")
+message(STATUS "libmpc++ Found: ${LIBMPC_FOUND}")
+if(LIBMPC_FOUND)
+    message(STATUS "libmpc++ will use C++20 features")
+endif()
+message(STATUS "===============================")
