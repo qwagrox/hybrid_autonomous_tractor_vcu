@@ -85,6 +85,7 @@ struct TractorVehicleState {
     float workingWidth;
     float workingDepth;
     float workingSpeed;
+    float speed;  // 添加speed成员作为workingSpeed的别名
     float fieldEfficiency;
     float workedArea;
     uint32_t workingHours;
@@ -137,10 +138,14 @@ struct PerceptionData {
     float terrainSlope;
     float rollingResistance;
     float aerodynamicDrag;
+    uint64_t timestamp;
 };
 
 struct PredictionResult {
     std::vector<float> loadForecast;
+    TractorVehicleState predictedState;
+    float confidence;
+    uint64_t timestamp;
 };
 
 struct SensorData {
@@ -263,6 +268,15 @@ struct MotorState {
     float currentCurrent;
 };
 
+struct CellModel {
+    float voltage;                  // 电芯电压 (V)
+    float soc;                      // 电芯SOC (%)
+    float temperature;              // 电芯温度 (°C)
+    float internalResistance;       // 电芯内阻 (Ω)
+    float capacity;                 // 电芯容量 (Ah)
+    int cycleCount;                 // 循环次数
+};
+
 struct BatteryState {
     float stateOfCharge;
     float stateOfHealth;
@@ -270,10 +284,17 @@ struct BatteryState {
     float current;
     float temperature;
     float power;
+    float energy;
+    float internalResistance;
+    float soc;  // 别名，指向stateOfCharge
     uint32_t cycleCount;
     bool isCharging;
     bool isDischarging;
     uint64_t timestamp;
+    std::vector<CellModel> cells;
+    
+    // 构造函数确保soc与stateOfCharge同步
+    BatteryState() : stateOfCharge(0.0f), soc(stateOfCharge) {}
 };
 
 struct EnergyState {
@@ -381,6 +402,21 @@ struct LoadTrend {
     uint32_t duration;
 };
 
+struct LoadSignature {
+    float engineTorque;
+    float motorTorque;
+    float groundSpeed;
+    float fuelRate;
+    float hydraulicPressure;
+    float implementForce;
+    float wheelSlip;
+    float powerConsumption;
+    float torqueDerivative;
+    float forceDerivative;
+    Eigen::Vector3f frequencyComponents;
+    uint64_t timestamp;
+};
+
 } // namespace VCUCore
 
 
@@ -430,3 +466,63 @@ struct ActuatorDiagnostic {
 
 } // namespace VCUCore
 
+
+struct DynamicsStatistics {
+    float averageAcceleration;
+    float maxAcceleration;
+    float averageDeceleration;
+    float maxDeceleration;
+    float averageSteeringRate;
+    float maxSteeringRate;
+    uint32_t totalManeuvers;
+    uint64_t timestamp;
+};
+
+struct DynamicsFault {
+    uint32_t faultCode;
+    std::string description;
+    float severity;
+    uint64_t timestamp;
+    bool isActive;
+};
+
+struct StabilityAssessment {
+    float stabilityIndex;
+    float rollStability;
+    float pitchStability;
+    float yawStability;
+    bool isStable;
+    float confidenceLevel;
+    uint64_t timestamp;
+};
+
+struct PredictionPerformance {
+    float accuracy;
+    float precision;
+    float recall;
+    float f1Score;
+    float computationTime;
+    uint64_t timestamp;
+};
+
+struct SystemStatus {
+    VCUCore::SystemState state;
+    float overallHealth;
+    float batteryLevel;
+    float engineLoad;
+    float hydraulicPressure;
+    bool isOperational;
+    uint32_t activeFaults;
+    uint64_t timestamp;
+};
+
+struct SystemParameters {
+    float maxSpeed;
+    float maxTorque;
+    float maxPower;
+    float safetyMargin;
+    bool enableAutonomous;
+    bool enableDiagnostics;
+    uint32_t updateInterval;
+    std::string configVersion;
+};

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <algorithm>
 #include <numeric>
+#include <chrono>
 
 namespace VCUCore {
 
@@ -37,33 +38,32 @@ void BatteryModel::initializeDefaultParameters() {
     };
     
     // 初始化电池状态
-    currentState_ = {
-        .voltage = params_.nominalVoltage,
-        .current = 0.0f,
-        .soc = 50.0f,
-        .soh = 100.0f,
-        .temperature = 25.0f,
-        .power = 0.0f,
-        .energy = params_.nominalCapacity * params_.nominalVoltage / 1000.0f * 0.5f,
-        .internalResistance = params_.internalResistance,
-        .timestamp = 0,
-        .cycleCount = 0,
-        .cells = std::vector<CellModel>(cellCount_)
-    };
+    currentState_.voltage = params_.nominalVoltage;
+    currentState_.current = 0.0f;
+    currentState_.stateOfCharge = 50.0f;
+    currentState_.soc = 50.0f;
+    currentState_.stateOfHealth = 100.0f;
+    currentState_.temperature = 25.0f;
+    currentState_.power = 0.0f;
+    currentState_.energy = params_.nominalCapacity * params_.nominalVoltage / 1000.0f * 0.5f;
+    currentState_.internalResistance = params_.internalResistance;
+    currentState_.timestamp = 0;
+    currentState_.cycleCount = 0;
+    currentState_.isCharging = false;
+    currentState_.isDischarging = false;
+    currentState_.cells = std::vector<CellModel>(cellCount_);
     
     previousState_ = currentState_;
 }
 
 void BatteryModel::initializeCellStates() {
     for (auto& cell : currentState_.cells) {
-        cell = {
-            .voltage = 3.2f,
-            .soc = 50.0f,
-            .temperature = 25.0f,
-            .internalResistance = 0.0005f, // 0.5 mΩ
-            .capacity = params_.nominalCapacity / cellCount_,
-            .cycleCount = 0
-        };
+        cell.voltage = 3.2f;
+        cell.soc = 50.0f;
+        cell.temperature = 25.0f;
+        cell.internalResistance = 0.0005f; // 0.5 mΩ
+        cell.capacity = params_.nominalCapacity / cellCount_;
+        cell.cycleCount = 0;
     }
 }
 
@@ -277,7 +277,7 @@ void BatteryModel::updateAgingModel(float deltaTime) {
     params_.internalResistance *= (1.0f + resistanceGrowth);
     
     // 更新健康状态
-    currentState_.soh = calculateSOH();
+    currentState_.stateOfHealth = calculateSOH();
     currentState_.internalResistance = params_.internalResistance;
     
     // 更新循环计数
@@ -399,7 +399,7 @@ void BatteryModel::calibrateCapacity(float measuredCapacity) {
     params_.nominalCapacity = capacityEstimate_;
 }
 
-uint32_t BatteryModel::getCurrentTime() const {
+uint64_t BatteryModel::getCurrentTime() const {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
 }
@@ -457,17 +457,34 @@ BatteryState BatteryModel::getCurrentState() const {
 BatteryHealth BatteryModel::getHealthStatus() const {
     BatteryHealth health;
     
-    health.overallHealth = currentState_.soh;
-    health.capacityHealth = (params_.nominalCapacity / 200.0f) * 100.0f;
-    health.resistanceHealth = (0.05f / currentState_.internalResistance) * 100.0f;
-    health.voltageHealth = checkCellVoltages() ? 100.0f : 80.0f;
-    health.temperatureHealth = (60.0f - currentState_.temperature) / 60.0f * 100.0f;
-    
-    // 预测寿命（简化模型）
-    health.predictedLifeCycles = static_cast<uint32_t>((100.0f - currentState_.soh) * 100);
-    health.predictedLifeDays = health.predictedLifeCycles / 2; // 假设每天2个循环
+    health.stateOfHealth = currentState_.stateOfHealth;
+    health.stateOfCharge = currentState_.stateOfCharge;
+    health.internalResistance = currentState_.internalResistance;
     
     return health;
+}
+
+// 其他缺失的方法实现
+
+void BatteryModel::handleSafetyViolation() {
+    // 处理安全违规情况
+    if (!checkSafetyLimits()) {
+        // 记录故障
+        // 可以在这里添加故障记录逻辑
+        
+        // 限制电流
+        if (currentState_.current > params_.maxDischargeCurrent) {
+            currentState_.current = params_.maxDischargeCurrent;
+        } else if (currentState_.current < -params_.maxChargeCurrent) {
+            currentState_.current = -params_.maxChargeCurrent;
+        }
+        
+        // 温度保护
+        if (currentState_.temperature > 60.0f) {
+            // 降低功率
+            currentState_.power *= 0.5f;
+        }
+    }
 }
 
 } // namespace VCUCore

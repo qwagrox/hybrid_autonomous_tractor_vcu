@@ -26,15 +26,7 @@ private:
         float selfDischargeRate;        // 自放电率 (%/月)
     };
     
-    // 电芯模型
-    struct CellModel {
-        float voltage;                  // 电芯电压 (V)
-        float soc;                      // 电芯SOC (%)
-        float temperature;              // 电芯温度 (°C)
-        float internalResistance;       // 电芯内阻 (Ω)
-        float capacity;                 // 电芯容量 (Ah)
-        int cycleCount;                 // 循环次数
-    };
+    // 电芯模型 - 使用vcu_core_types.hpp中的定义
     
     BatteryParameters params_;
     BatteryState currentState_;
@@ -141,6 +133,9 @@ private:
     void updateHistory(const BatteryState& state);
     float interpolateOCV(float soc, float temperature) const;
     void handleCellImbalance();
+    void updateSOC(float deltaTime);
+    uint64_t getCurrentTime() const;
+    void handleSafetyViolation();
     
     // 电芯管理
     void updateIndividualCells(float deltaTime);

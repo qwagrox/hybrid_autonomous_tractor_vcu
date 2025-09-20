@@ -24,6 +24,7 @@ public:
     void update(const PerceptionData& perception, const PredictionResult& prediction);
     CVTState getCurrentState() const;
     bool isShifting() const;
+    float calculateOptimalRatio(const PerceptionData& perception, const PredictionResult& prediction);
 
 private:
     CVTState currentState_;
@@ -33,7 +34,6 @@ private:
     std::deque<float> ratioHistory_;
     uint32_t historySize_;
 
-    float calculateOptimalRatio(const PerceptionData& perception, const PredictionResult& prediction);
     void adaptToManufacturer(CVTManufacturer manufacturer);
     void checkRatioLimits();
 

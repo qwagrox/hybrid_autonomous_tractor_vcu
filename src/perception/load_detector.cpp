@@ -50,7 +50,7 @@ LoadChangeResult LoadDetector::detectLoadChange(const SensorData& sensorData,
     // 添加到历史记录
     loadHistory_.push_back(currentSignature);
     if (loadHistory_.size() > maxHistorySize_) {
-        loadHistory_.pop_front();
+        loadHistory_.erase(loadHistory_.begin());
     }
     
     // 更新统计信息
@@ -137,7 +137,7 @@ float LoadDetector::calculateLoadStability() const {
     return 1.0f / (1.0f + variability / 100.0f); // 归一化稳定性指标
 }
 
-std::vector<LoadDetector::LoadSignature> LoadDetector::getLoadHistory(int duration_ms) const {
+std::vector<LoadSignature> LoadDetector::getLoadHistory(int duration_ms) const {
     std::vector<LoadSignature> result;
     uint64_t currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count();
@@ -157,7 +157,7 @@ void LoadDetector::clearHistory() {
     movingVariances_.fill(0.0f);
 }
 
-LoadDetector::LoadSignature LoadDetector::createLoadSignature(const SensorData& sensorData, 
+LoadSignature LoadDetector::createLoadSignature(const SensorData& sensorData, 
                                                              const TractorVehicleState& vehicleState) const {
     LoadSignature signature;
     signature.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(

@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(vcu_main)
-
 set(CMAKE_CXX_STANDARD 17)
-
-# 选项：是否禁用libmpc
-option(WITHOUT_LIBMPC "Build without libmpc++ support" OFF)
 
 # 查找Eigen3
 set(EIGEN3_FOUND FALSE)
@@ -53,47 +49,39 @@ if(NOT EIGEN3_FOUND)
     message(FATAL_ERROR "Eigen3 not found! Please install libeigen3-dev.")
 endif()
 
-# 查找libmpc++（如果未禁用）
+# 查找libmpc++（可选）
 set(LIBMPC_FOUND FALSE)
+option(WITHOUT_LIBMPC "Build without libmpc++ support" OFF)
+
 if(NOT WITHOUT_LIBMPC)
-    # 尝试使用pkg-config查找libmpc++
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_check_modules(PC_LIBMPC QUIET mpc++)
-        if(PC_LIBMPC_FOUND)
-            set(LIBMPC_FOUND TRUE)
-            set(LIBMPC_INCLUDE_DIRS ${PC_LIBMPC_INCLUDE_DIRS})
-            set(LIBMPC_LIBRARIES ${PC_LIBMPC_LIBRARIES})
-            message(STATUS "Found libmpc++ using pkg-config: ${PC_LIBMPC_VERSION}")
-        endif()
-    endif()
+    set(LIBMPC_SEARCH_PATHS
+        "/usr/local/include"
+        "/usr/include"
+        "/opt/libmpc/include"
+    )
     
-    # 如果pkg-config失败，手动查找
-    if(NOT LIBMPC_FOUND)
-        find_path(LIBMPC_INCLUDE_DIR 
-            NAMES mpc/NLMPC.hpp mpc/LMPC.hpp
-            PATHS 
-                /usr/include
-                /usr/local/include
-                /opt/libmpc/include
-                ${CMAKE_SOURCE_DIR}/third_party/libmpc/include
-        )
-        
-        if(LIBMPC_INCLUDE_DIR)
+    foreach(SEARCH_PATH ${LIBMPC_SEARCH_PATHS})
+        if(EXISTS "${SEARCH_PATH}/mpc/NLMPC.hpp")
+            message(STATUS "Found libmpc++ headers at: ${SEARCH_PATH}")
             set(LIBMPC_FOUND TRUE)
-            set(LIBMPC_INCLUDE_DIRS ${LIBMPC_INCLUDE_DIR})
-            message(STATUS "Found libmpc++ at: ${LIBMPC_INCLUDE_DIR}")
+            set(LIBMPC_INCLUDE_DIRS ${SEARCH_PATH})
             add_definitions(-DWITH_LIBMPC)
-        else()
-            message(STATUS "libmpc++ not found, building without MPC support")
+            break()
         endif()
-    endif()
+    endforeach()
+endif()
+
+if(LIBMPC_FOUND)
+    message(STATUS "libmpc++ found and will be used")
 else()
-    message(STATUS "libmpc++ support disabled by WITHOUT_LIBMPC option")
+    message(STATUS "libmpc++ not found, building without MPC support")
 endif()
 
 # 查找其他依赖
-find_package(GTest REQUIRED)
+find_package(GTest QUIET)
+if(NOT GTest_FOUND)
+    message(STATUS "GTest not found, building without test support")
+endif()
 
 # 设置包含目录
 include_directories(
@@ -135,23 +123,22 @@ add_executable(vcu_main
     src/utils/tractor_state_calculator.cpp
 )
 
-# 收集所有需要链接的库
-set(VCU_LIBRARIES pthread)
+# 链接库
+set(VCU_MAIN_LIBS pthread)
 
-# 添加Eigen3库
 if(TARGET ${EIGEN3_TARGET})
-    list(APPEND VCU_LIBRARIES ${EIGEN3_TARGET})
+    list(APPEND VCU_MAIN_LIBS ${EIGEN3_TARGET})
 endif()
 
-# 添加GTest库
-list(APPEND VCU_LIBRARIES ${GTEST_LIBRARIES})
+if(GTest_FOUND)
+    list(APPEND VCU_MAIN_LIBS ${GTEST_LIBRARIES})
+endif()
 
-# 一次性链接所有库到主程序
-target_link_libraries(vcu_main PRIVATE ${VCU_LIBRARIES})
+target_link_libraries(vcu_main ${VCU_MAIN_LIBS})
 
 # 系统测试
 add_executable(system_test
-    tests/simple_system_test.cpp
+    tests/system_test.cpp
     src/can_bus_interface.cpp
     src/control/braking_controller.cpp
     src/control/cvt_controller.cpp
@@ -179,11 +166,27 @@ add_executable(system_test
     src/utils/tractor_state_calculator.cpp
 )
 
-# 一次性链接所有库到测试程序
-target_link_libraries(system_test PRIVATE pthread)
+set(SYSTEM_TEST_LIBS pthread)
 
-# 确保包含system_integration源文件
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/system_integration.cpp")
-    message(STATUS "Creating system_integration.cpp")
+if(TARGET ${EIGEN3_TARGET})
+    list(APPEND SYSTEM_TEST_LIBS ${EIGEN3_TARGET})
 endif()
 
+target_link_libraries(system_test ${SYSTEM_TEST_LIBS})
+
+# 设置编译选项
+target_compile_options(vcu_main PRIVATE
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
+    -Wno-unused-variable
+    -Wno-narrowing
+)
+
+target_compile_options(system_test PRIVATE
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
+    -Wno-unused-variable
+    -Wno-narrowing
+)

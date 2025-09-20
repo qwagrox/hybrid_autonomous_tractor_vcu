@@ -39,6 +39,7 @@ public:
     
     bool initialize();
     SystemHealthStatus checkSystemHealth();
+    SystemHealthStatus getSystemHealth();  // 添加getSystemHealth方法
     ComponentHealth checkComponentHealth(const std::string& component);
     
     // 维护管理
