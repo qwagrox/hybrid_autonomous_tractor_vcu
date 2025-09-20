@@ -267,15 +267,15 @@ ControlCommands SafetyMonitor::limitTorqueCommands(const ControlCommands& comman
     
     // 限制发动机扭矩
     limited.engineTorqueRequest = std::min(limited.engineTorqueRequest,
-        limits_.maxEngineTorque * adaptiveSafetyMargin_);
+        static_cast<double>(limits_.maxEngineTorque * adaptiveSafetyMargin_));
     
     // 限制电机扭矩
     limited.motorTorqueRequest = std::min(limited.motorTorqueRequest,
-        limits_.maxMotorTorque * adaptiveSafetyMargin_);
+        static_cast<double>(limits_.maxMotorTorque * adaptiveSafetyMargin_));
     
     // 限制扭矩变化率
-    float currentTorque = state.actualTorque;
-    float maxChange = 100.0f * (1.0f / 100.0f); // 100 Nm/s 变化率限制
+    double currentTorque = static_cast<double>(state.actualTorque);
+    double maxChange = 100.0 * (1.0 / 100.0); // 100 Nm/s 变化率限制
     
     limited.engineTorqueRequest = std::clamp(limited.engineTorqueRequest,
         currentTorque - maxChange, currentTorque + maxChange);

@@ -124,7 +124,7 @@ bool FaultHandler::handleSingleFault(const FaultDiagnosis& fault) {
     }
     
     // 需要人工干预的故障
-    if (fault.severity >= FaultSeverity::HIGH) {
+    if (fault.severity >= static_cast<double>(FaultSeverity::HIGH)) {
         escalateFault(fault);
     }
     
@@ -260,7 +260,7 @@ bool FaultHandler::checkFaultCondition(const FaultRule& rule, const TractorVehic
     if (rule.condition.find("can_bus_errors") != std::string::npos) {
         // 检查CAN总线错误
         for (const auto& fault : healthStatus.activeFaults) {
-            if (fault.component == "CAN" && fault.severity >= FaultSeverity::MEDIUM) {
+            if (fault.component == "CAN" && fault.severity >= static_cast<double>(FaultSeverity::MEDIUM)) {
                 return true;
             }
         }
@@ -274,14 +274,15 @@ FaultDiagnosis FaultHandler::createFaultDiagnosis(uint16_t code, FaultSeverity s
     
     return {
         .faultCode = code,
-        .severity = severity,
         .description = description,
+        .severity = static_cast<double>(severity),
         .component = component,
         .timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count(),
         .duration = 0,
         .isActive = true,
         .isRecoverable = true,
+        .recommendedAction = "Check component and reset if needed",
         .recoverySteps = {"Automatic recovery attempt", "Manual intervention if needed"}
     };
 }

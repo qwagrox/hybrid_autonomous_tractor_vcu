@@ -697,6 +697,46 @@ struct ActuatorDiagnostic {
     std::map<std::string, double> diagnosticData;
 };
 
+// 故障统计结构体
+struct FaultStatistics {
+    uint32_t totalFaults;
+    uint32_t activeFaults;
+    uint32_t resolvedFaults;
+    double averageResolutionTime;
+    std::map<std::string, uint32_t> faultsByComponent;
+    std::map<uint32_t, uint32_t> faultsByCode;
+    uint64_t timestamp;
+};
+
+// 安全违规相关枚举和结构体
+enum class ViolationSeverity {
+    LOW = 1,
+    MEDIUM = 2,
+    HIGH = 3,
+    CRITICAL = 4
+};
+
+enum class ViolationType {
+    SPEED_LIMIT_EXCEEDED,
+    TORQUE_LIMIT_EXCEEDED,
+    TEMPERATURE_LIMIT_EXCEEDED,
+    PRESSURE_LIMIT_EXCEEDED,
+    STABILITY_RISK,
+    COLLISION_IMMINENT,
+    EMERGENCY_STOP_REQUIRED
+};
+
+struct SafetyViolation {
+    ViolationType type;
+    ViolationSeverity severity;
+    std::string description;
+    std::string component;
+    double value;
+    double limit;
+    uint64_t timestamp;
+    bool isResolved;
+};
+
 // GPIO引脚常量定义
 constexpr uint32_t GPIO_PIN_IMPLEMENT_LIFT = 12;
 constexpr uint32_t GPIO_PIN_IMPLEMENT_LOWER = 13;
