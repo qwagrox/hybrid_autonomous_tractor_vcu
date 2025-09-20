@@ -1,4 +1,4 @@
-// include/vcu_core_types.hpp - 完全修复版本
+// include/vcu_core_types.hpp - 基于实际代码的完整修复版本
 #pragma once
 #include <Eigen/Dense>
 #include <vector>
@@ -11,11 +11,14 @@
 
 namespace VCUCore {
 
-// 使用统一的数据类型（避免float/double混用）
-using Vector3d = Eigen::Vector3d;  // 统一使用double
+// 使用统一的数据类型
+using Vector3d = Eigen::Vector3d;
 using Matrix3d = Eigen::Matrix3d;
 using VectorXd = Eigen::VectorXd;
 using MatrixXd = Eigen::MatrixXd;
+
+// 时间戳类型定义
+using Timestamp = uint64_t;
 
 // 枚举类型定义
 enum class SystemState {
@@ -55,7 +58,6 @@ enum class TrendDirection {
     OSCILLATING
 };
 
-// 添加缺失的CVTManufacturer枚举
 enum class CVTManufacturer {
     GENERIC,
     JOHN_DEERE,
@@ -65,6 +67,13 @@ enum class CVTManufacturer {
     CLAAS,
     MASSEY_FERGUSON,
     KUBOTA
+};
+
+enum class FaultSeverity {
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL
 };
 
 // 基础结构体定义
@@ -97,12 +106,20 @@ struct TractorVehicleState {
     double workingWidth;
     double workingDepth;
     double workingSpeed;
-    double speed;  // 添加speed成员作为workingSpeed的别名
+    double speed;
     double fieldEfficiency;
     double workedArea;
     uint32_t workingHours;
     double stabilityMargin;
-    double wheelSpeed;  // 添加wheelSpeed成员
+    double wheelSpeed;
+    
+    // 添加缺失的成员
+    double centerOfGravityHeight;
+    double rolloverRisk;
+    bool isWorking;
+    bool isPTOEngaged;
+    bool isTransporting;
+    
     uint64_t timestamp;
 };
 
@@ -119,14 +136,12 @@ struct PerceptionData {
     double rollingResistance;
     double aerodynamicDrag;
     uint64_t timestamp;
-    
-    // 添加缺失的成员
-    double stabilityIndex;      // 稳定性指数
-    double tractionEfficiency;  // 牵引效率
+    double stabilityIndex;
+    double tractionEfficiency;
 };
 
 struct PredictionResult {
-    std::vector<double> loadForecast;  // 使用double替代float
+    std::vector<double> loadForecast;
     TractorVehicleState predictedState;
     double confidence;
     uint64_t timestamp;
@@ -134,13 +149,17 @@ struct PredictionResult {
 
 struct SensorData {
     Vector3d gnssPosition;
-    Vector3d gnssVelocity;      // 添加缺失的gnssVelocity成员
+    Vector3d gnssVelocity;
     Vector3d imuAcceleration;
     Vector3d imuAngularRate;
     double wheelSpeed;
-    std::vector<double> wheelSpeeds;  // 添加缺失的wheelSpeeds成员（多个车轮）
-    double engineRPM;
+    std::vector<double> wheelSpeeds;
+    
+    // 发动机相关 - 使用实际代码中的名称
+    double engineRPM;      // 保留这个
+    double engineRpm;      // 添加这个（代码中使用的名称）
     double engineTorque;
+    
     double fuelLevel;
     double batteryVoltage;
     double hydraulicPressure;
@@ -149,7 +168,7 @@ struct SensorData {
     uint64_t timestamp;
 };
 
-// 添加缺失的EngineData结构体
+// EngineData结构体 - 基于实际代码使用的成员
 struct EngineData {
     double rpm;
     double torque;
@@ -159,10 +178,17 @@ struct EngineData {
     double oilPressure;
     double throttlePosition;
     bool isRunning;
+    
+    // 添加实际代码中使用的成员
+    double actualTorque;
+    double percentLoad;
+    double speed;
+    double fuelRate;
+    double boostPressure;
+    
     uint64_t timestamp;
 };
 
-// 添加缺失的EngineState结构体
 struct EngineState {
     double rpm;
     double torque;
@@ -178,7 +204,6 @@ struct EngineState {
     uint64_t timestamp;
 };
 
-// 添加缺失的MotorState结构体
 struct MotorState {
     double rpm;
     double torque;
@@ -193,7 +218,6 @@ struct MotorState {
     uint64_t timestamp;
 };
 
-// 添加缺失的EnergyState结构体
 struct EnergyState {
     double totalPower;
     double enginePower;
@@ -204,6 +228,16 @@ struct EnergyState {
     double efficiency;
     double fuelConsumption;
     double batteryLevel;
+    uint64_t timestamp;
+};
+
+// 添加OptimizationResult结构体
+struct OptimizationResult {
+    double optimalValue;
+    std::vector<double> parameters;
+    bool converged;
+    int iterations;
+    double computationTime;
     uint64_t timestamp;
 };
 
@@ -223,7 +257,7 @@ struct CellModel {
 
 struct BatteryHealth {
     double overallHealth;
-    double stateOfHealth;  // 使用stateOfHealth替代soh
+    double stateOfHealth;
     double degradationRate;
     uint32_t cycleCount;
     double temperatureHealth;
@@ -260,10 +294,10 @@ struct BatteryState {
     double stateOfCharge;
     double stateOfHealth;
     double power;
-    double energy;              // 添加缺失的energy成员
-    double internalResistance;  // 添加缺失的internalResistance成员
-    double soc;                 // 添加缺失的soc成员
-    std::vector<CellModel> cells;  // 添加缺失的cells成员
+    double energy;
+    double internalResistance;
+    double soc;
+    std::vector<CellModel> cells;
     BatteryHealth health;
     BatteryFault currentFault;
     BatteryStatistics statistics;
@@ -275,9 +309,9 @@ struct BatteryState {
 // 负载检测相关结构体
 struct LoadSignature {
     double drawbarForce;
-    double motorTorque;         // 添加缺失的motorTorque成员
-    double implementForce;      // 添加缺失的implementForce成员
-    double wheelSlip;           // 添加缺失的wheelSlip成员
+    double motorTorque;
+    double implementForce;
+    double wheelSlip;
     double fuelConsumption;
     double powerConsumption;
     double workingDepth;
@@ -302,7 +336,7 @@ struct LoadTrend {
     uint64_t timestamp;
 };
 
-// 控制命令结构体 - 添加缺失的成员
+// 控制命令结构体
 struct ControlCommands {
     double torqueRequest;
     double steeringAngleRequest;
@@ -310,11 +344,8 @@ struct ControlCommands {
     double cvtRatioRequest;
     double ptoSpeedRequest;
     double hydraulicPressureRequest;
-    
-    // 添加缺失的成员
-    double engineTorqueRequest;   // 发动机扭矩请求
-    double motorTorqueRequest;    // 电机扭矩请求
-    
+    double engineTorqueRequest;
+    double motorTorqueRequest;
     bool emergencyStop;
     uint64_t timestamp;
 };
@@ -326,13 +357,12 @@ struct SystemHealthStatus {
     double engineLoad;
     double fuelLevel;
     double hydraulicPressure;
-    bool isHealthy;  // 添加isHealthy成员
+    bool isHealthy;
     std::vector<std::string> activeWarnings;
     std::vector<std::string> activeFaults;
     uint64_t timestamp;
 };
 
-// 系统相关结构体
 struct SystemStatus {
     VCUCore::SystemState state;
     double overallHealth;
@@ -355,45 +385,6 @@ struct SystemParameters {
     double maxPTOPower;
     std::map<std::string, double> calibrationValues;
     uint64_t lastCalibrationTime;
-};
-
-// 动力学相关结构体
-struct DynamicsStatistics {
-    double averageSpeed;
-    double maxSpeed;
-    double averageAcceleration;
-    double maxAcceleration;
-    double totalDistance;
-    double fuelEfficiency;
-    uint64_t operatingTime;
-};
-
-struct DynamicsFault {
-    uint32_t faultCode;
-    std::string description;
-    double severity;
-    uint64_t timestamp;
-    bool isActive;
-};
-
-struct StabilityAssessment {
-    double stabilityMargin;
-    double rolloverRisk;
-    double tractionLoss;
-    double lateralAcceleration;
-    double longitudinalAcceleration;
-    bool isStable;
-    uint64_t timestamp;
-};
-
-// 预测性能结构体
-struct PredictionPerformance {
-    double accuracy;
-    double precision;
-    double recall;
-    double f1Score;
-    double computationTime;
-    uint64_t timestamp;
 };
 
 // CVT制造商参数结构体
@@ -422,6 +413,14 @@ struct FaultDiagnosis {
     uint64_t timestamp;
     bool isActive;
     std::string recommendedAction;
+};
+
+struct FaultTrend {
+    std::string component;
+    TrendDirection direction;
+    double frequency;
+    double severity;
+    uint64_t timestamp;
 };
 
 struct MaintenanceItem {
@@ -462,5 +461,11 @@ struct DiagnosticResult {
     std::string details;
     uint64_t timestamp;
 };
+
+// 注意：不在这里重复定义以下结构体，因为它们在其他头文件中已定义
+// - DynamicsStatistics (在vehicle_dynamics_model.hpp中定义)
+// - DynamicsFault (在vehicle_dynamics_model.hpp中定义)
+// - StabilityAssessment (在vehicle_dynamics_model.hpp中定义)
+// - PredictionPerformance (在predictive_analytics.hpp中定义)
 
 } // namespace VCUCore
