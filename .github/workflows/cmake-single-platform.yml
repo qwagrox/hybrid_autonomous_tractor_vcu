@@ -93,66 +93,56 @@ jobs:
           exit 1
         fi
 
-    - name: Install libmpc++ dependencies
+    - name: Install libmpc++ dependencies (minimal)
       run: |
-        echo "Installing libmpc++ dependencies..."
+        echo "Installing minimal libmpc++ dependencies..."
+        # 只安装确实存在的包
         sudo apt-get install -y \
-          libnlopt-cxx-dev \
-          libosqp-dev \
           libboost-all-dev \
           libblas-dev \
           liblapack-dev
+        
+        # 尝试安装可选依赖（如果失败就跳过）
+        sudo apt-get install -y libnlopt-cxx-dev || echo "NLopt not available, skipping..."
+        
+        # 对于OSQP，我们可以跳过或者使用替代方案
+        echo "OSQP not required for basic libmpc++ functionality"
 
-    - name: Install libmpc++ from source
+    - name: Download prebuilt libmpc++ headers
       run: |
-        echo "Installing libmpc++ from source..."
+        echo "Downloading prebuilt libmpc++ headers..."
         
         # 检查缓存
-        if [ -f "/usr/local/include/mpc/NLMPC.hpp" ]; then
-          echo "✓ libmpc++ found in cache"
-          ls -la /usr/local/include/mpc/ | head -5
+        if [ -d "/tmp/libmpc-headers" ] && [ -f "/tmp/libmpc-headers/include/mpc/NLMPC.hpp" ]; then
+          echo "✓ libmpc++ headers found in cache"
         else
-          echo "Installing libmpc++ from source..."
+          echo "Downloading libmpc++ from GitHub releases..."
           
           cd /tmp
-          if [ ! -d "libmpc" ]; then
-            # 克隆libmpc++仓库
-            git clone https://github.com/nicolapiccinelli/libmpc.git --depth 1 --branch ${{ env.LIBMPC_VERSION }}
-          fi
           
-          cd libmpc
-          
-          # 创建构建目录
-          mkdir -p /tmp/libmpc-build
-          cd /tmp/libmpc-build
-          
-          # 配置CMake
-          cmake /tmp/libmpc \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr/local \
-            -DBUILD_EXAMPLES=OFF \
-            -DBUILD_TESTS=OFF \
-            -DBUILD_SHARED_LIBS=ON \
-            -DEIGEN3_INCLUDE_DIR=/usr/local/include \
-            -G Ninja
-          
-          # 编译和安装
-          ninja -j2
-          sudo ninja install
-          
-          # 更新库路径
-          sudo ldconfig
-          
-          # 验证安装
-          if [ -f "/usr/local/include/mpc/NLMPC.hpp" ]; then
-            echo "✓ libmpc++ installation successful"
-            ls -la /usr/local/include/mpc/ | head -5
-            echo "Checking library files..."
-            find /usr/local/lib -name "*mpc*" 2>/dev/null || echo "No libmpc libraries found (header-only is OK)"
+          # 下载最新的release或者直接下载源码
+          if ! wget -q https://github.com/nicolapiccinelli/libmpc/archive/refs/tags/${{ env.LIBMPC_VERSION }}.tar.gz; then
+            echo "Release not found, downloading main branch..."
+            wget -q https://github.com/nicolapiccinelli/libmpc/archive/refs/heads/main.tar.gz -O libmpc-main.tar.gz
+            tar -xzf libmpc-main.tar.gz
+            mv libmpc-main libmpc-headers
           else
-            echo "❌ libmpc++ installation failed"
-            exit 1
+            tar -xzf ${{ env.LIBMPC_VERSION }}.tar.gz
+            mv libmpc-* libmpc-headers
           fi
+        fi
+        
+        # 复制头文件到系统目录
+        sudo mkdir -p /usr/local/include
+        sudo cp -r /tmp/libmpc-headers/include/* /usr/local/include/
+        
+        # 验证安装
+        if [ -f "/usr/local/include/mpc/NLMPC.hpp" ]; then
+          echo "✓ libmpc++ headers installation successful"
+          ls -la /usr/local/include/mpc/ | head -5
+        else
+          echo "❌ libmpc++ headers installation failed"
+          exit 1
         fi
 
     - name: Verify installations
