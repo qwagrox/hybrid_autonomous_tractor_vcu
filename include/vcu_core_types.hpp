@@ -1,528 +1,310 @@
-// include/vcu_core_types.hpp
+// include/vcu_core_types.hpp - C++20兼容性补丁
 #pragma once
-#include <eigen3/Eigen/Dense>
-#include <chrono>
-#include <array>
+#include <Eigen/Dense>
 #include <vector>
 #include <string>
-#include <memory>
-#include <cstdint>
 #include <map>
+#include <deque>
+#include <chrono>
+#include <atomic>
 
 namespace VCUCore {
 
-using Vector3d = Eigen::Vector3d;
+// 使用统一的数据类型（避免float/double混用）
+using Vector3d = Eigen::Vector3d;  // 统一使用double
 using Matrix3d = Eigen::Matrix3d;
-using Timestamp = uint64_t;
+using VectorXd = Eigen::VectorXd;
+using MatrixXd = Eigen::MatrixXd;
 
-enum class SystemState : uint8_t {
-    OFF, STANDBY, READY, RUNNING, 
-    DEGRADED, FAULT, EMERGENCY, CALIBRATION
+// 枚举类型定义
+enum class SystemState {
+    INITIALIZING,
+    IDLE,
+    ACTIVE,
+    ERROR,
+    SHUTDOWN
 };
 
-enum class DriveMode : uint8_t {
-    ECO, COMFORT, SPORT, 
-    PLOWING, SEEDING, TRANSPORT,
-    ROAD, FIELD, MANUAL,
-    LOADING, UNLOADING, PARKING
+enum class DriveMode {
+    MANUAL,
+    SEMI_AUTONOMOUS,
+    AUTONOMOUS,
+    EMERGENCY
 };
 
-enum class CVTManufacturer : uint8_t {
-    UNKNOWN,
-    JOHN_DEERE,
-    CASE_IH,
-    CLAAS
+enum class LoadChangeType {
+    INCREASE,
+    DECREASE,
+    STABLE,
+    UNKNOWN
 };
 
-struct CVTState {
-    float currentRatio;
-    float targetRatio;
-    bool isShifting;
-    uint32_t timestamp;
+enum class LoadType {
+    LIGHT,
+    MEDIUM,
+    HEAVY,
+    VARIABLE,
+    UNKNOWN
 };
 
-struct EngineData {
-    float actualTorque;
-    float percentLoad;
-    float speed;
-    float fuelRate;
-    float boostPressure;
-    float temperature;
-    float oilPressure;
-    uint8_t derateStatus;
-    uint16_t errorCodes;
-    uint32_t timestamp;
-    uint8_t operatingHours;
-    float efficiency;
+enum class TrendDirection {
+    INCREASING,
+    DECREASING,
+    STABLE,
+    OSCILLATING
 };
 
+// 基础结构体定义
 struct TractorVehicleState {
     Vector3d position;
     Vector3d velocity;
     Vector3d acceleration;
-    float heading;
-    float pitch;
-    float roll;
-    float gradeAngle;
+    double heading;
+    double pitch;
+    double roll;
+    double gradeAngle;
     Vector3d imuAngularRate;
-    float drawbarPull;
-    float drawbarPower;
-    float wheelSlipRatio;
-    float tractionEfficiency;
-    float estimatedMass;
-    float frontAxleLoad;
-    float rearAxleLoad;
-    float ballastMass;
-    float actualTorque;
-    float demandedTorque;
-    float engineLoad;
-    float pto_rpm;
-    float pto_torque;
-    float powerConsumption;
-    float fuelConsumption;
-    float energyEfficiency;
-    float specificFuelConsumption;
-    float workingWidth;
-    float workingDepth;
-    float workingSpeed;
-    float speed;  // 添加speed成员作为workingSpeed的别名
-    float fieldEfficiency;
-    float workedArea;
+    double drawbarPull;
+    double drawbarPower;
+    double wheelSlipRatio;
+    double tractionEfficiency;
+    double estimatedMass;
+    double frontAxleLoad;
+    double rearAxleLoad;
+    double ballastMass;
+    double actualTorque;
+    double demandedTorque;
+    double engineLoad;
+    double pto_rpm;
+    double pto_torque;
+    double powerConsumption;
+    double fuelConsumption;
+    double energyEfficiency;
+    double specificFuelConsumption;
+    double workingWidth;
+    double workingDepth;
+    double workingSpeed;
+    double speed;  // 添加speed成员作为workingSpeed的别名
+    double fieldEfficiency;
+    double workedArea;
     uint32_t workingHours;
-    float stabilityMargin;
-    float centerOfGravityHeight;
-    float turningRadius;
-    bool rolloverRisk;
-    float groundClearance;
-    float hydraulicPressure;
-    float hydraulicFlowRate;
-    float hydraulicOilTemperature;
-    float hitchHeight;
-    float soilCompaction;
-    float soilMoisture;
-    float wheelLoadDistribution[4];
-    Matrix3d estimationCovariance;
-    SystemState systemState;
-    DriveMode driveMode;
-    uint32_t timestamp;
-    float batterySOC;
-    float engineRpm;
-    float motorRpm;
-    float engineTemperature;
-    float motorTemperature;
-    bool isWorking;
-    bool isTransporting;
-    bool isTurning;
-    bool isPTOEngaged;
-    bool isHydraulicActive;
+    double stabilityMargin;
+    double wheelSpeed;  // 添加wheelSpeed成员
+    uint64_t timestamp;
 };
 
-struct ControlCommands {
-    float engineTorqueRequest;
-    float motorTorqueRequest;
-    int transmissionGearRequest;
-    float hydraulicPressureRequest;
-    bool implementLiftRequest;
-    float cvtRatioRequest;
-    bool emergencyStop;
-    uint8_t controlMode;
-    float maxTorqueLimit;
-    float minTorqueLimit;
-    float torqueChangeRate;
-    float ratioChangeRate;
+struct CVTState {
+    double currentRatio;
+    double targetRatio;
+    double ratioChangeRate;
     uint32_t timestamp;
 };
 
 struct PerceptionData {
     TractorVehicleState vehicleState;
-    float terrainSlope;
-    float rollingResistance;
-    float aerodynamicDrag;
+    double terrainSlope;
+    double rollingResistance;
+    double aerodynamicDrag;
     uint64_t timestamp;
+    
+    // 添加缺失的成员
+    double stabilityIndex;      // 稳定性指数
+    double tractionEfficiency;  // 牵引效率
 };
 
 struct PredictionResult {
-    std::vector<float> loadForecast;
+    std::vector<double> loadForecast;  // 使用double替代float
     TractorVehicleState predictedState;
-    float confidence;
+    double confidence;
     uint64_t timestamp;
 };
 
 struct SensorData {
     Vector3d gnssPosition;
+    Vector3d gnssVelocity;      // 添加缺失的gnssVelocity成员
     Vector3d imuAcceleration;
     Vector3d imuAngularRate;
-    float wheelSpeed[4];
-    float steeringAngle;
-    float engineRpm;
-    float motorRpm;
-    float batteryVoltage;
-    float batteryCurrent;
-    uint32_t timestamp;
-};
-
-struct LearningExperience {
-    // Placeholder
-};
-
-struct LearningModel {
-    // Placeholder
-};
-
-struct EnvironmentData {
-    // Placeholder
-};
-
-struct OperatorBehavior {
-    // Placeholder
-};
-
-struct TaskRequirements {
-    // Placeholder
-};
-
-enum class MaintenanceSeverity : uint8_t {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
-};
-
-enum class FaultSeverity : uint8_t {
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL
-};
-
-struct MaintenanceItem {
-    std::string component;
-    std::string description;
-    MaintenanceSeverity severity;
-    float estimatedCost;
-    int estimatedTime;
-    uint32_t dueDate;
-};
-
-struct FaultDiagnosis {
-    uint32_t faultCode;
-    FaultSeverity severity;
-    std::string description;
-    std::string component;
+    double wheelSpeed;
+    std::vector<double> wheelSpeeds;  // 添加缺失的wheelSpeeds成员（多个车轮）
+    double engineRPM;
+    double engineTorque;
+    double fuelLevel;
+    double batteryVoltage;
+    double hydraulicPressure;
+    double oilTemperature;
+    double coolantTemperature;
     uint64_t timestamp;
-    uint32_t duration;
-    bool isActive;
-    bool isRecoverable;
-    std::vector<std::string> recoverySteps;
 };
 
-struct SystemHealthStatus {
-    uint64_t timestamp;
-    float overallHealth;
-    bool isHealthy;
-    uint32_t uptime;
-    uint32_t lastMaintenance;
-    uint32_t nextMaintenance;
-    std::map<std::string, float> componentHealth;
-    std::vector<FaultDiagnosis> activeFaults;
-};
-
-struct PerformanceStatistics {
-    // Placeholder
-};
-
-struct HealthForecast {
-    // Placeholder
-};
-
-struct MaintenanceRecord {
-    // Placeholder
-};
-
-struct DiagnosticTest {
-    // Placeholder
-};
-
-struct DiagnosticResult {
-    // Placeholder
-};
-
-struct HealthReport {
-    // Placeholder
-};
-
-struct HealthTrend {
-    // Placeholder
-};
-
-struct EngineState {
-    float operatingHours;
-    float coolantTemperature;
-    float currentTorque;
-    float maxAvailableTorque;
-};
-
-struct MotorState {
-    float operatingHours;
-    float windingTemperature;
-    float currentCurrent;
-};
-
+// 电池相关结构体
 struct CellModel {
-    float voltage;                  // 电芯电压 (V)
-    float soc;                      // 电芯SOC (%)
-    float temperature;              // 电芯温度 (°C)
-    float internalResistance;       // 电芯内阻 (Ω)
-    float capacity;                 // 电芯容量 (Ah)
-    int cycleCount;                 // 循环次数
+    double voltage;
+    double current;
+    double temperature;
+    double soc;
+    double soh;
+    double internalResistance;
+    double capacity;
+    uint32_t cycleCount;
+    bool isBalancing;
+    uint64_t timestamp;
+};
+
+struct BatteryHealth {
+    double overallHealth;
+    double stateOfHealth;  // 使用stateOfHealth替代soh
+    double degradationRate;
+    uint32_t cycleCount;
+    double temperatureHealth;
+    double voltageHealth;
+    double currentHealth;
+    uint64_t lastMaintenanceTime;
+    std::vector<std::string> healthWarnings;
+};
+
+struct BatteryFault {
+    uint32_t faultCode;
+    std::string faultDescription;
+    double severity;
+    uint64_t timestamp;
+    bool isActive;
+    std::string recommendedAction;
+};
+
+struct BatteryStatistics {
+    double averageVoltage;
+    double averageCurrent;
+    double averageTemperature;
+    double totalEnergyConsumed;
+    double totalEnergyGenerated;
+    uint32_t totalCycles;
+    double efficiency;
+    uint64_t operatingTime;
 };
 
 struct BatteryState {
-    float stateOfCharge;
-    float stateOfHealth;
-    float voltage;
-    float current;
-    float temperature;
-    float power;
-    float energy;
-    float internalResistance;
-    float soc;  // 别名，指向stateOfCharge
-    uint32_t cycleCount;
+    double voltage;
+    double current;
+    double temperature;
+    double stateOfCharge;
+    double stateOfHealth;
+    double power;
+    double energy;              // 添加缺失的energy成员
+    double internalResistance;  // 添加缺失的internalResistance成员
+    double soc;                 // 添加缺失的soc成员
+    std::vector<CellModel> cells;  // 添加缺失的cells成员
+    BatteryHealth health;
+    BatteryFault currentFault;
+    BatteryStatistics statistics;
     bool isCharging;
     bool isDischarging;
     uint64_t timestamp;
-    std::vector<CellModel> cells;
-    
-    // 构造函数确保soc与stateOfCharge同步
-    BatteryState() : stateOfCharge(0.0f), soc(stateOfCharge) {}
 };
 
-struct EnergyState {
-    BatteryState battery;
-    EngineState engine;
-    MotorState motor;
-    float totalPowerDemand;
-    float totalPowerGenerated;
-    float energyEfficiency;
+// 负载检测相关结构体
+struct LoadSignature {
+    double drawbarForce;
+    double motorTorque;         // 添加缺失的motorTorque成员
+    double implementForce;      // 添加缺失的implementForce成员
+    double wheelSlip;           // 添加缺失的wheelSlip成员
+    double fuelConsumption;
+    double powerConsumption;
+    double workingDepth;
+    double workingSpeed;
+    double soilResistance;
     uint64_t timestamp;
-};
-
-struct PowerFlow {
-    float enginePower;
-    float motorPower;
-    float batteryPower;
-    float auxiliaryPower;
-    float totalPower;
-    float efficiency;
-    uint64_t timestamp;
-};
-
-struct EnergyOptimization {
-    PowerFlow optimalFlow;
-    float costSavings;
-    float efficiencyGain;
-    float batteryLifeImpact;
-    bool isValid;
-    uint64_t timestamp;
-};
-
-struct ChargingStrategy {
-    bool shouldCharge;
-    float targetSOC;
-    float chargingRate;
-    uint32_t estimatedTime;
-    uint64_t timestamp;
-};
-
-struct EnergyForecast {
-    float predictedConsumption;
-    float predictedGeneration;
-    float predictedSOC;
-    uint32_t forecastHorizon;
-    float confidence;
-    uint64_t timestamp;
-};
-
-struct OptimizationResult {
-    EnergyOptimization optimization;
-    float actualSavings;
-    float actualEfficiency;
-    bool wasSuccessful;
-    uint64_t timestamp;
-};
-
-struct FaultStatistics {
-    uint32_t totalFaults;
-    uint32_t activeFaults;
-    uint32_t resolvedFaults;
-    float averageResolutionTime;
-    uint64_t timestamp;
-};
-
-struct FaultTrend {
-    uint32_t faultCode;
-    float frequency;
-    float severity;
-    bool isIncreasing;
-    uint64_t timestamp;
-};
-
-enum class LoadChangeType : uint8_t {
-    NONE,
-    ABRUPT,
-    GRADUAL,
-    CYCLIC
-};
-
-enum class LoadType : uint8_t {
-    LIGHT_IMPLEMENT,
-    MEDIUM_IMPLEMENT,
-    HEAVY_IMPLEMENT,
-    TRANSPORT
-};
-
-enum class TrendDirection : uint8_t {
-    STABLE,
-    INCREASING,
-    DECREASING
 };
 
 struct LoadChangeResult {
-    bool hasChanged;
     LoadChangeType changeType;
-    float magnitude;
-    float confidence;
+    double magnitude;
+    double confidence;
+    LoadSignature currentSignature;
     uint64_t timestamp;
 };
 
 struct LoadTrend {
     TrendDirection direction;
-    float rate;
-    float confidence;
+    double slope;
+    double confidence;
     uint32_t duration;
-};
-
-struct LoadSignature {
-    float engineTorque;
-    float motorTorque;
-    float groundSpeed;
-    float fuelRate;
-    float hydraulicPressure;
-    float implementForce;
-    float wheelSlip;
-    float powerConsumption;
-    float torqueDerivative;
-    float forceDerivative;
-    Eigen::Vector3f frequencyComponents;
     uint64_t timestamp;
 };
 
-} // namespace VCUCore
-
-
-
-namespace VCUCore {
-
-struct BatteryHealth {
-    float stateOfHealth;
-    float stateOfCharge;
-    float internalResistance;
-};
-
-struct BatteryFault {
-    uint32_t faultCode;
-    std::string description;
-};
-
-struct BatteryStatistics {
-    float totalEnergyCharged;
-    float totalEnergyDischarged;
-    uint32_t cycleCount;
-};
-
-} // namespace VCUCore
-
-
-
-namespace VCUCore {
-
-const int GPIO_PIN_IMPLEMENT_LIFT = 1;
-
-} // namespace VCUCore
-
-
-
-namespace VCUCore {
-
-struct ActuatorCommand {
+// 控制命令结构体
+struct ControlCommands {
+    double torqueRequest;
+    double steeringAngleRequest;
+    double brakeRequest;
+    double cvtRatioRequest;
+    double ptoSpeedRequest;
+    double hydraulicPressureRequest;
+    bool emergencyStop;
     uint64_t timestamp;
-    float engineTorque;
-    float motorTorque;
 };
 
-struct ActuatorDiagnostic {
-    // Placeholder
+// 系统相关结构体
+struct SystemStatus {
+    VCUCore::SystemState state;
+    double overallHealth;
+    double batteryLevel;
+    double engineLoad;
+    double fuelLevel;
+    double hydraulicPressure;
+    std::vector<std::string> activeWarnings;
+    std::vector<std::string> activeFaults;
+    uint64_t timestamp;
 };
 
-} // namespace VCUCore
+struct SystemParameters {
+    double maxTorque;
+    double maxSpeed;
+    double maxSteeringAngle;
+    double wheelbase;
+    double trackWidth;
+    double maxDrawbarPull;
+    double maxPTOPower;
+    std::map<std::string, double> calibrationValues;
+    uint64_t lastCalibrationTime;
+};
 
-
+// 动力学相关结构体
 struct DynamicsStatistics {
-    float averageAcceleration;
-    float maxAcceleration;
-    float averageDeceleration;
-    float maxDeceleration;
-    float averageSteeringRate;
-    float maxSteeringRate;
-    uint32_t totalManeuvers;
-    uint64_t timestamp;
+    double averageSpeed;
+    double maxSpeed;
+    double averageAcceleration;
+    double maxAcceleration;
+    double totalDistance;
+    double fuelEfficiency;
+    uint64_t operatingTime;
 };
 
 struct DynamicsFault {
     uint32_t faultCode;
     std::string description;
-    float severity;
+    double severity;
     uint64_t timestamp;
     bool isActive;
 };
 
 struct StabilityAssessment {
-    float stabilityIndex;
-    float rollStability;
-    float pitchStability;
-    float yawStability;
+    double stabilityMargin;
+    double rolloverRisk;
+    double tractionLoss;
+    double lateralAcceleration;
+    double longitudinalAcceleration;
     bool isStable;
-    float confidenceLevel;
     uint64_t timestamp;
 };
 
+// 预测性能结构体
 struct PredictionPerformance {
-    float accuracy;
-    float precision;
-    float recall;
-    float f1Score;
-    float computationTime;
+    double accuracy;
+    double precision;
+    double recall;
+    double f1Score;
+    double computationTime;
     uint64_t timestamp;
 };
 
-struct SystemStatus {
-    VCUCore::SystemState state;
-    float overallHealth;
-    float batteryLevel;
-    float engineLoad;
-    float hydraulicPressure;
-    bool isOperational;
-    uint32_t activeFaults;
-    uint64_t timestamp;
-};
-
-struct SystemParameters {
-    float maxSpeed;
-    float maxTorque;
-    float maxPower;
-    float safetyMargin;
-    bool enableAutonomous;
-    bool enableDiagnostics;
-    uint32_t updateInterval;
-    std::string configVersion;
-};
+} // namespace VCUCore
