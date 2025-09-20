@@ -4,8 +4,9 @@
 #include "models/engine_model.hpp"
 #include "models/motor_model.hpp"
 #include "models/vehicle_dynamics_model.hpp"
-#include <acado_toolkit.hpp>
-#include <acado_gnuplot.hpp>
+#include <mpc/NLMPC.hpp>
+#include <mpc/Utils.hpp>
+#include <Eigen/Dense>
 #include <memory>
 #include <deque>
 
@@ -19,11 +20,30 @@ enum class PredictionStrategy {
     FALLBACK             // 降级模式
 };
 
+// libmpc++ MPC参数定义
+static constexpr int STATE_DIM = 6;      // 状态维度 [x, y, theta, v, omega, a]
+static constexpr int CONTROL_DIM = 2;    // 控制维度 [steering, throttle]
+static constexpr int OUTPUT_DIM = 6;     // 输出维度
+static constexpr int PREDICTION_HORIZON = 20;  // 预测时域
+static constexpr int CONTROL_HORIZON = 10;     // 控制时域
+static constexpr int INEQ_CONSTRAINTS = 40;    // 不等式约束数量
+static constexpr int EQ_CONSTRAINTS = 0;       // 等式约束数量
+
+// libmpc控制器类型定义
+using MPCController = mpc::NLMPC<STATE_DIM, CONTROL_DIM, OUTPUT_DIM, 
+                               PREDICTION_HORIZON, CONTROL_HORIZON, 
+                               INEQ_CONSTRAINTS, EQ_CONSTRAINTS>;
+
+// 数据类型别名
+using StateVector = mpc::cvec<STATE_DIM>;
+using ControlVector = mpc::cvec<CONTROL_DIM>;
+using OutputVector = mpc::cvec<OUTPUT_DIM>;
+
 // NMPC优化状态
 struct NMPCState {
-    ACADO::VariablesGrid states;
-    ACADO::VariablesGrid controls;
-    ACADO::VariablesGrid parameters;
+    std::vector<StateVector> states;
+    std::vector<ControlVector> controls;
+    std::vector<OutputVector> outputs;
     double optimizationTime;
     double costValue;
     int iterations;
@@ -37,20 +57,20 @@ private:
     std::atomic<bool> strategySwitchRequested_;
     PredictionStrategy requestedStrategy_;
     
-    // NMPC相关成员
-    std::unique_ptr<ACADO::RealTimeAlgorithm> nmpcSolver_;
-    std::unique_ptr<ACADO::StaticReferenceTrajectory> referenceTrajectory_;
-    std::unique_ptr<ACADO::Controller> nmpcController_;
+    // libmpc++ MPC相关成员
+    std::unique_ptr<MPCController> mpcController_;
     
-    // NMPC参数
-    ACADO::DifferentialEquation systemDynamics_;
-    ACADO::Function systemModel_;
-    ACADO::OCP nmpcProblem_;
+    // MPC参数
+    double samplingTime_;
+    double wheelbase_;
+    double maxSteeringAngle_;
+    double maxVelocity_;
+    double maxAcceleration_;
     
-    // 优化问题参数
-    int predictionHorizonSteps_;
-    double controlInterval_;
-    ACADO::VariablesGrid nmpcWeights_;
+    // 权重矩阵
+    mpc::mat<STATE_DIM, STATE_DIM> Q_;     // 状态权重矩阵
+    mpc::mat<CONTROL_DIM, CONTROL_DIM> R_; // 控制权重矩阵
+    mpc::mat<STATE_DIM, STATE_DIM> Qf_;    // 终端权重矩阵
     
     // 机器学习模型
     std::unique_ptr<MLModel> mlModel_;
@@ -86,6 +106,10 @@ public:
     NMPCState solveNMPCOnline(const PerceptionData& currentState, const PredictionResult& reference);
     bool warmStartNMPC(const NMPCState& previousSolution);
     
+    // libmpc++ 特定方法
+    StateVector convertToMPCState(const PerceptionData& perception);
+    ControlCommands convertToVCUControl(const ControlVector& mpcControl);
+    
     // 混合预测
     PredictionResult executeHybridPrediction(const PerceptionData& perception, 
                                            const PredictionResult& initialPrediction);
@@ -112,9 +136,9 @@ private:
     void saveStrategyState(PredictionStrategy strategy);
     void restoreStrategyState(PredictionStrategy strategy);
     
-    // 实时优化
-    ACADO::DVector convertToNMPCState(const PerceptionData& perception) const;
-    PredictionResult convertFromNMPCState(const ACADO::VariablesGrid& solution) const;
+    // 实时优化 (libmpc++)
+    StateVector convertToNMPCState(const PerceptionData& perception) const;
+    PredictionResult convertFromNMPCState(const std::vector<StateVector>& solution) const;
     
     // 性能评估
     double calculatePredictionError(const PredictionResult& prediction, 

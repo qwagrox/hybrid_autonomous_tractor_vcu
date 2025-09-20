@@ -3,8 +3,8 @@ project(vcu_main)
 
 set(CMAKE_CXX_STANDARD 17)
 
-# 选项：是否禁用ACADO
-option(WITHOUT_ACADO "Build without ACADO support" OFF)
+# 选项：是否禁用libmpc
+option(WITHOUT_LIBMPC "Build without libmpc++ support" OFF)
 
 # 查找Eigen3
 set(EIGEN3_FOUND FALSE)
@@ -53,27 +53,43 @@ if(NOT EIGEN3_FOUND)
     message(FATAL_ERROR "Eigen3 not found! Please install libeigen3-dev.")
 endif()
 
-# 查找ACADO（如果未禁用）
-set(ACADO_FOUND FALSE)
-if(NOT WITHOUT_ACADO)
-    find_path(ACADO_INCLUDE_DIR 
-        NAMES acado_toolkit.hpp
-        PATHS 
-            /usr/include
-            /usr/local/include
-            /opt/acado/include
-    )
+# 查找libmpc++（如果未禁用）
+set(LIBMPC_FOUND FALSE)
+if(NOT WITHOUT_LIBMPC)
+    # 尝试使用pkg-config查找libmpc++
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(PC_LIBMPC QUIET mpc++)
+        if(PC_LIBMPC_FOUND)
+            set(LIBMPC_FOUND TRUE)
+            set(LIBMPC_INCLUDE_DIRS ${PC_LIBMPC_INCLUDE_DIRS})
+            set(LIBMPC_LIBRARIES ${PC_LIBMPC_LIBRARIES})
+            message(STATUS "Found libmpc++ using pkg-config: ${PC_LIBMPC_VERSION}")
+        endif()
+    endif()
     
-    if(ACADO_INCLUDE_DIR)
-        set(ACADO_FOUND TRUE)
-        set(ACADO_INCLUDE_DIRS ${ACADO_INCLUDE_DIR})
-        message(STATUS "Found ACADO at: ${ACADO_INCLUDE_DIR}")
-        add_definitions(-DWITH_ACADO)
-    else()
-        message(STATUS "ACADO not found, building without ACADO support")
+    # 如果pkg-config失败，手动查找
+    if(NOT LIBMPC_FOUND)
+        find_path(LIBMPC_INCLUDE_DIR 
+            NAMES mpc/NLMPC.hpp mpc/LMPC.hpp
+            PATHS 
+                /usr/include
+                /usr/local/include
+                /opt/libmpc/include
+                ${CMAKE_SOURCE_DIR}/third_party/libmpc/include
+        )
+        
+        if(LIBMPC_INCLUDE_DIR)
+            set(LIBMPC_FOUND TRUE)
+            set(LIBMPC_INCLUDE_DIRS ${LIBMPC_INCLUDE_DIR})
+            message(STATUS "Found libmpc++ at: ${LIBMPC_INCLUDE_DIR}")
+            add_definitions(-DWITH_LIBMPC)
+        else()
+            message(STATUS "libmpc++ not found, building without MPC support")
+        endif()
     endif()
 else()
-    message(STATUS "ACADO support disabled by WITHOUT_ACADO option")
+    message(STATUS "libmpc++ support disabled by WITHOUT_LIBMPC option")
 endif()
 
 # 查找其他依赖
@@ -85,8 +101,8 @@ include_directories(
     ${EIGEN3_INCLUDE_DIRS}
 )
 
-if(ACADO_FOUND)
-    include_directories(${ACADO_INCLUDE_DIRS})
+if(LIBMPC_FOUND)
+    include_directories(${LIBMPC_INCLUDE_DIRS})
 endif()
 
 # 主程序

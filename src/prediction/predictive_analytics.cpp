@@ -4,8 +4,9 @@
 #include "models/motor_model.hpp"
 #include "models/vehicle_dynamics_model.hpp"
 #include "models/terrain_model.hpp"
-#include <acado_toolkit.hpp>
-#include <acado_gnuplot.hpp>
+#include <mpc/NLMPC.hpp>
+#include <mpc/Utils.hpp>
+#include <Eigen/Dense>
 #include <tensorflow/lite/interpreter.h>
 #include <tensorflow/lite/model.h>
 #include <tensorflow/lite/kernels/register.h>
