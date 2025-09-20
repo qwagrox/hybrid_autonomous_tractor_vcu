@@ -60,47 +60,37 @@ jobs:
           unzip \
           curl
 
-    - name: Install Eigen3 from source
+    - name: Install Eigen3
       run: |
-        echo "Installing Eigen3 version ${{ env.EIGEN_VERSION }}..."
+        echo "Installing Eigen3..."
+        sudo apt-get install -y libeigen3-dev
         
-        # 检查缓存
-        if [ -f "/usr/local/include/Eigen/Dense" ]; then
-          echo "✓ Eigen3 found in cache"
-          eigen_version=$(grep "EIGEN_WORLD_VERSION" /usr/local/include/Eigen/src/Core/util/Macros.h | head -1 | grep -o '[0-9]\+' | head -1)
-          echo "Cached Eigen version: 3.$eigen_version.x"
+        # 验证安装
+        if [ -d "/usr/include/eigen3" ]; then
+          echo "✓ Eigen3 headers found at /usr/include/eigen3"
+          ls -la /usr/include/eigen3/
         else
-          echo "Installing Eigen3 from source..."
+          echo "✗ Eigen3 headers not found, trying alternative installation..."
           
+          # 如果apt安装失败，从源码编译安装
           cd /tmp
-          if [ ! -d "eigen-${{ env.EIGEN_VERSION }}" ]; then
-            # 下载Eigen3源码
-            wget -q https://gitlab.com/libeigen/eigen/-/archive/${{ env.EIGEN_VERSION }}/eigen-${{ env.EIGEN_VERSION }}.tar.gz
-            tar -xzf eigen-${{ env.EIGEN_VERSION }}.tar.gz
-          fi
+          wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+          tar -xzf eigen-3.4.0.tar.gz
+          cd eigen-3.4.0
+          mkdir build && cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
+          sudo make install
           
-          cd eigen-${{ env.EIGEN_VERSION }}
-          mkdir -p build && cd build
-          
-          # 配置CMake
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=/usr/local \
-            -DBUILD_TESTING=OFF \
-            -DEIGEN_BUILD_DOC=OFF \
-            -G Ninja
-          
-          # 安装（Eigen是头文件库，只需要安装头文件）
-          sudo ninja install
-          
-          # 验证安装
-          if [ -f "/usr/local/include/Eigen/Dense" ]; then
-            echo "✓ Eigen3 installation successful"
-            ls -la /usr/local/include/Eigen/ | head -10
-          else
-            echo "❌ Eigen3 installation failed"
-            exit 1
-          fi
+          # 创建符号链接到标准位置
+          sudo ln -sf /usr/local/include/eigen3 /usr/include/eigen3
+        fi
+        
+        # 最终验证
+        if [ -f "/usr/include/eigen3/Eigen/Dense" ]; then
+          echo "✓ Eigen3 installation verified"
+        else
+          echo "✗ Eigen3 installation failed"
+          exit 1
         fi
 
     - name: Install libmpc++ dependencies
