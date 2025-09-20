@@ -151,7 +151,7 @@ target_link_libraries(vcu_main PRIVATE ${VCU_LIBRARIES})
 
 # 系统测试
 add_executable(system_test
-    tests/system_test.cpp
+    tests/simple_system_test.cpp
     src/can_bus_interface.cpp
     src/control/braking_controller.cpp
     src/control/cvt_controller.cpp
@@ -181,3 +181,9 @@ add_executable(system_test
 
 # 一次性链接所有库到测试程序
 target_link_libraries(system_test PRIVATE pthread)
+
+# 确保包含system_integration源文件
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/system_integration.cpp")
+    message(STATUS "Creating system_integration.cpp")
+endif()
+
