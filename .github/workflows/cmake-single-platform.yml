@@ -104,50 +104,6 @@ jobs:
         
         echo "✓ Basic dependencies installed successfully"
 
-    - name: Download libmpc++ headers
-      run: |
-        echo "Downloading libmpc++ headers..."
-        
-        # 检查缓存
-        if [ -d "/tmp/libmpc-main" ] && [ -f "/tmp/libmpc-main/include/mpc/NLMPC.hpp" ]; then
-          echo "✓ libmpc++ headers found in cache"
-        else
-          echo "Downloading libmpc++ from GitHub..."
-          
-          cd /tmp
-          
-          # 使用git clone而不是wget，更可靠
-          if [ -d "libmpc-main" ]; then
-            rm -rf libmpc-main
-          fi
-          
-          # 克隆最新的main分支
-          git clone https://github.com/nicolapiccinelli/libmpc.git libmpc-main --depth 1
-          
-          # 验证下载
-          if [ ! -f "/tmp/libmpc-main/include/mpc/NLMPC.hpp" ]; then
-            echo "❌ Failed to download libmpc++ headers"
-            exit 1
-          fi
-          
-          echo "✓ libmpc++ headers downloaded successfully"
-        fi
-        
-        # 复制头文件到系统目录
-        echo "Installing libmpc++ headers..."
-        sudo mkdir -p /usr/local/include
-        sudo cp -r /tmp/libmpc-main/include/* /usr/local/include/
-        
-        # 验证安装
-        if [ -f "/usr/local/include/mpc/NLMPC.hpp" ]; then
-          echo "✓ libmpc++ headers installation successful"
-          echo "Available headers:"
-          ls -la /usr/local/include/mpc/ | head -5
-        else
-          echo "❌ libmpc++ headers installation failed"
-          exit 1
-        fi
-
     - name: Verify installations
       run: |
         echo "=== Verification Summary ==="

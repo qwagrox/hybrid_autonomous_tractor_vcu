@@ -1,13 +1,15 @@
-// include/control/cvt_controller.hpp - 修复重复定义问题
+// include/control/cvt_controller.hpp
 #pragma once
 #include "vcu_core_types.hpp"
-#include "models/vehicle_dynamics_model.hpp"
+#include <cstdint>
+#include <string>
+#include <vector>
 #include <deque>
-#include <array>
+#include <map>
 
 namespace VCUCore {
 
-// 移除重复的CVTManufacturerParams定义，使用vcu_core_types.hpp中的定义
+// CVTManufacturerParams已在vcu_core_types.hpp中定义
 
 class CVTController {
 public:
@@ -16,41 +18,31 @@ public:
     void setDriveMode(DriveMode mode);
     void update(const PerceptionData& perception, const PredictionResult& prediction);
     CVTState getCurrentState() const;
-    
-    // 制造商适配
-    void adaptToManufacturer(CVTManufacturer manufacturer);
-    CVTManufacturerParams getManufacturerParams() const;
-    
-    // 比率计算
-    double calculateOptimalRatio(const PerceptionData& perception, 
-                               const PredictionResult& prediction);
-    
-    // 历史数据管理
-    void updateRatioHistory(double ratio);
-    std::deque<double> getRatioHistory() const;
-    
-    // 性能优化
-    void optimizeForEfficiency();
-    void optimizeForPerformance();
+    bool isShifting() const;
+    float calculateOptimalRatio(const PerceptionData& perception, const PredictionResult& prediction);
 
 private:
     CVTState currentState_;
     DriveMode currentDriveMode_;
     CVTManufacturer currentManufacturer_;
     CVTManufacturerParams manufacturerParams_;
+    std::deque<float> ratioHistory_;
     uint32_t historySize_;
-    
-    std::deque<double> ratioHistory_;
-    std::array<double, 24> hourlyRatioPattern_;
-    
-    void initializeManufacturerParams();
-    void updateRatioBasedOnLoad(double loadFactor);
-    void updateRatioBasedOnTerrain(double terrainSlope);
-    double calculateEfficiencyScore(double ratio, double load) const;
-    
-    // 学习算法
-    void learnOptimalRatios();
-    void updateAdaptiveParameters(const PerceptionData& perception);
+
+    void adaptToManufacturer(CVTManufacturer manufacturer);
+    void checkRatioLimits();
+
+    float calculatePlowingRatio(const PerceptionData& perception) const;
+    float calculateSeedingRatio(const PerceptionData& perception) const;
+    float calculateTransportRatio(const PerceptionData& perception) const;
+    float calculateBaseRatio(const PerceptionData& perception) const;
+
+    float optimizeForEfficiency(float baseRatio, const PerceptionData& perception) const;
+    float optimizeForTraction(float baseRatio, const PerceptionData& perception) const;
+    float optimizeForComfort(float baseRatio, const PerceptionData& perception) const;
+
+    float calculateWheelSlip(float ratio, const PerceptionData& perception) const;
 };
 
 } // namespace VCUCore
+

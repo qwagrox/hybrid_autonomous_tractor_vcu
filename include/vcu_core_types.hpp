@@ -1,4 +1,4 @@
-// include/vcu_core_types.hpp - 基于GitHub最新代码的完整修复版本
+// include/vcu_core_types.hpp - 基于实际代码的完整修复版本
 #pragma once
 #include <Eigen/Dense>
 #include <vector>
@@ -8,7 +8,6 @@
 #include <chrono>
 #include <atomic>
 #include <functional>
-#include <array>
 
 namespace VCUCore {
 
@@ -34,7 +33,10 @@ enum class DriveMode {
     MANUAL,
     SEMI_AUTONOMOUS,
     AUTONOMOUS,
-    EMERGENCY
+    EMERGENCY,
+    PLOWING,
+    SEEDING,
+    TRANSPORT
 };
 
 enum class LoadChangeType {
@@ -60,6 +62,7 @@ enum class TrendDirection {
 };
 
 enum class CVTManufacturer {
+    UNKNOWN,
     GENERIC,
     JOHN_DEERE,
     CASE_IH,
@@ -75,15 +78,6 @@ enum class FaultSeverity {
     MEDIUM,
     HIGH,
     CRITICAL
-};
-
-// 预测策略枚举
-enum class PredictionStrategy {
-    SIMPLE_LINEAR,
-    KALMAN_FILTER,
-    NEURAL_NETWORK,
-    HYBRID_APPROACH,
-    NMPC_BASED
 };
 
 // 基础结构体定义
@@ -137,6 +131,7 @@ struct CVTState {
     double currentRatio;
     double targetRatio;
     double ratioChangeRate;
+    bool isShifting;
     uint32_t timestamp;
 };
 
@@ -260,6 +255,13 @@ struct EnergyOptimization {
     double estimatedFuelSaving;
     double computationTime;
     bool isValid;
+    
+    // 添加缺失的成员
+    PowerFlow optimalFlow;
+    double costSavings;
+    double efficiencyGain;
+    double batteryLifeImpact;
+    
     uint64_t timestamp;
 };
 
@@ -300,6 +302,15 @@ struct EnergyForecast {
     double forecastHorizon;
     double confidence;
     uint64_t timestamp;
+};
+
+// 预测策略枚举
+enum class PredictionStrategy {
+    SIMPLE_LINEAR,
+    KALMAN_FILTER,
+    NEURAL_NETWORK,
+    HYBRID_APPROACH,
+    NMPC_BASED
 };
 
 // 电池相关结构体
@@ -448,11 +459,11 @@ struct SystemParameters {
     uint64_t lastCalibrationTime;
 };
 
-// CVT制造商参数结构体 - 统一定义，避免重复
+// CVT制造商参数结构体
 struct CVTManufacturerParams {
-    float minRatio;
-    float maxRatio;
-    float defaultRatio;
+    double minRatio;
+    double maxRatio;
+    double defaultRatio;
     std::string name;
 };
 
