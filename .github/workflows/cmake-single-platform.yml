@@ -1,18 +1,92 @@
-- name: Install libmpc++ dependencies
+name: VCU CMake Build and Test with libmpc++
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build-and-test:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-20.04]
+        build_type: [Release, Debug]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/vcpkg
+          /var/cache/apt
+          /tmp/libmpc-main
+        key: ${{ runner.os }}-deps-libmpc-main-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-deps-libmpc-
+          ${{ runner.os }}-deps-
+
+    - name: Update package lists
       run: |
-        echo "Installing libmpc++ dependencies..."
-        # 安装确实存在的包
+        sudo apt-get update
+
+    - name: Install basic build tools
+      run: |
         sudo apt-get install -y \
-          libboost-all-dev \
-          libblas-dev \
-          liblapack-dev
+          build-essential \
+          cmake \
+          ninja-build \
+          pkg-config \
+          wget \
+          git \
+          unzip \
+          curl
+
+    - name: Install Eigen3
+      run: |
+        echo "Installing Eigen3..."
+        sudo apt-get install -y libeigen3-dev
         
-        # 尝试安装可选依赖（如果失败就跳过）
-        echo "Trying to install optional dependencies..."
-        sudo apt-get install -y libnlopt-cxx-dev || echo "⚠️ NLopt not available, skipping..."
-        sudo apt-get install -y libosqp-dev || echo "⚠️ OSQP not available, skipping..."
+        # 验证安装
+        if [ -d "/usr/include/eigen3" ]; then
+          echo "✓ Eigen3 headers found at /usr/include/eigen3"
+          ls -la /usr/include/eigen3/
+        else
+          echo "✗ Eigen3 headers not found, trying alternative installation..."
+          
+          # 如果apt安装失败，从源码编译安装
+          cd /tmp
+          wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+          tar -xzf eigen-3.4.0.tar.gz
+          cd eigen-3.4.0
+          mkdir build && cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
+          sudo make install
+          
+          # 创建符号链接到标准位置
+          sudo ln -sf /usr/local/include/eigen3 /usr/include/eigen3
+        fi
         
-        echo "✓ Basic dependencies installed successfully"
+        # 最终验证
+        if [ -f "/usr/include/eigen3/Eigen/Dense" ]; then
+          echo "✓ Eigen3 installation verified"
+        else
+          echo "✗ Eigen3 installation failed"
+          exit 1
+        fi
 
     - name: Install libmpc++ dependencies
       run: |
