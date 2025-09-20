@@ -56,7 +56,18 @@ SystemHealthStatus HealthMonitor::checkSystemHealth() {
         }
         for (const auto& fault : health.activeFaults) {
             if (fault.isActive) {
-                status.activeFaults.push_back(component + ": " + fault.description);
+                FaultDiagnosis faultDiag;
+                faultDiag.faultCode = fault.faultCode;
+                faultDiag.description = component + ": " + fault.description;
+                faultDiag.severity = fault.severity;
+                faultDiag.component = component;
+                faultDiag.timestamp = fault.timestamp;
+                faultDiag.duration = 0;
+                faultDiag.isActive = fault.isActive;
+                faultDiag.isRecoverable = true;
+                faultDiag.recommendedAction = fault.recommendedAction;
+                faultDiag.recoverySteps = {"Check component", "Reset if needed"};
+                status.activeFaults.push_back(faultDiag);
             }
         }
     }

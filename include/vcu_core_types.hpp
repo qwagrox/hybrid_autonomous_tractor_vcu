@@ -440,6 +440,20 @@ struct ControlCommands {
     uint64_t timestamp;
 };
 
+// 故障诊断相关结构体
+struct FaultDiagnosis {
+    uint32_t faultCode;
+    std::string description;
+    double severity;
+    std::string component;
+    uint64_t timestamp;
+    uint32_t duration;
+    bool isActive;
+    bool isRecoverable;
+    std::string recommendedAction;
+    std::vector<std::string> recoverySteps;
+};
+
 // 系统健康相关结构体
 struct SystemHealthStatus {
     double overallHealth;
@@ -449,7 +463,7 @@ struct SystemHealthStatus {
     double hydraulicPressure;
     bool isHealthy;
     std::vector<std::string> activeWarnings;
-    std::vector<std::string> activeFaults;
+    std::vector<FaultDiagnosis> activeFaults;
     uint64_t timestamp;
 };
 
@@ -494,16 +508,7 @@ struct TorqueDistribution {
     uint64_t timestamp;
 };
 
-// 故障诊断相关结构体
-struct FaultDiagnosis {
-    uint32_t faultCode;
-    std::string description;
-    double severity;
-    std::string component;
-    uint64_t timestamp;
-    bool isActive;
-    std::string recommendedAction;
-};
+// 故障诊断相关结构体已移到前面
 
 struct FaultTrend {
     std::string component;
