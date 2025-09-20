@@ -1,4 +1,4 @@
-// include/vcu_core_types.hpp - 基于实际代码的完整修复版本
+// include/vcu_core_types.hpp - 修复前向声明问题的版本
 #pragma once
 #include <Eigen/Dense>
 #include <vector>
@@ -8,6 +8,7 @@
 #include <chrono>
 #include <atomic>
 #include <functional>
+#include <array>
 
 namespace VCUCore {
 
@@ -80,6 +81,23 @@ enum class FaultSeverity {
     CRITICAL
 };
 
+// 预测策略枚举
+enum class PredictionStrategy {
+    SIMPLE_LINEAR,
+    KALMAN_FILTER,
+    NEURAL_NETWORK,
+    HYBRID_APPROACH,
+    NMPC_BASED
+};
+
+enum class ChargingMode {
+    NONE,
+    REGENERATIVE,
+    GRID_CHARGING,
+    SOLAR_CHARGING,
+    HYBRID_CHARGING
+};
+
 // 基础结构体定义
 struct TractorVehicleState {
     Vector3d position;
@@ -120,6 +138,9 @@ struct TractorVehicleState {
     // 添加缺失的成员
     double centerOfGravityHeight;
     double rolloverRisk;
+    double batterySOC;
+    double engineRpm;
+    double motorRpm;
     bool isWorking;
     bool isPTOEngaged;
     bool isTransporting;
@@ -246,7 +267,21 @@ struct OptimizationResult {
     uint64_t timestamp;
 };
 
-// 能源管理相关结构体 - 添加缺失的类型
+// 先定义PowerFlow，然后再定义EnergyOptimization
+struct PowerFlow {
+    double enginePower;
+    double motorPower;
+    double batteryPower;
+    double hydraulicPower;
+    double auxiliaryPower;
+    double totalPower;
+    double totalDemand;
+    double efficiency;
+    double operatingCost;
+    uint64_t timestamp;
+};
+
+// 能源管理相关结构体 - 修复前向声明问题
 struct EnergyOptimization {
     double optimalEngineTorque;
     double optimalMotorTorque;
@@ -256,33 +291,13 @@ struct EnergyOptimization {
     double computationTime;
     bool isValid;
     
-    // 添加缺失的成员
+    // 现在PowerFlow已经定义了，可以安全使用
     PowerFlow optimalFlow;
     double costSavings;
     double efficiencyGain;
     double batteryLifeImpact;
     
     uint64_t timestamp;
-};
-
-struct PowerFlow {
-    double enginePower;
-    double motorPower;
-    double batteryPower;
-    double hydraulicPower;
-    double auxiliaryPower;
-    double totalDemand;
-    double efficiency;
-    double operatingCost;
-    uint64_t timestamp;
-};
-
-enum class ChargingMode {
-    NONE,
-    REGENERATIVE,
-    GRID_CHARGING,
-    SOLAR_CHARGING,
-    HYBRID_CHARGING
 };
 
 struct ChargingStrategy {
@@ -292,6 +307,7 @@ struct ChargingStrategy {
     double estimatedTime;
     double estimatedCost;
     bool isOptimal;
+    bool shouldCharge;
     uint64_t timestamp;
 };
 
@@ -301,16 +317,13 @@ struct EnergyForecast {
     std::vector<double> fuelConsumptionForecast;
     double forecastHorizon;
     double confidence;
+    
+    // 添加缺失的成员
+    double predictedGeneration;
+    double predictedSOC;
+    double predictedConsumption;
+    
     uint64_t timestamp;
-};
-
-// 预测策略枚举
-enum class PredictionStrategy {
-    SIMPLE_LINEAR,
-    KALMAN_FILTER,
-    NEURAL_NETWORK,
-    HYBRID_APPROACH,
-    NMPC_BASED
 };
 
 // 电池相关结构体
@@ -459,7 +472,7 @@ struct SystemParameters {
     uint64_t lastCalibrationTime;
 };
 
-// CVT制造商参数结构体
+// CVT制造商参数结构体 - 统一定义，避免重复
 struct CVTManufacturerParams {
     double minRatio;
     double maxRatio;
