@@ -737,6 +737,69 @@ struct SafetyViolation {
     bool isResolved;
 };
 
+// 安全检查相关类型
+enum class SafetyCheckStatus {
+    SAFE, WARNING, CRITICAL, EMERGENCY
+};
+
+struct SafetyCheckResult {
+    SafetyCheckStatus status;
+    std::string message;
+    std::vector<SafetyViolation> violations;
+    double riskScore;
+    bool requiresAction;
+    std::string recommendedAction;
+    uint64_t timestamp;
+};
+
+// 风险评估类型
+enum class RiskLevel {
+    LOW = 1, MEDIUM = 2, HIGH = 3, CRITICAL = 4
+};
+
+struct RiskAssessment {
+    RiskLevel overallRisk;
+    double riskScore;
+    std::map<std::string, double> componentRisks;
+    std::vector<std::string> riskFactors;
+    std::string primaryConcern;
+    uint64_t timestamp;
+};
+
+// 紧急响应类型
+enum class EmergencyLevel {
+    NONE = 0, LOW = 1, MEDIUM = 2, HIGH = 3, CRITICAL = 4
+};
+
+enum class EmergencyAction {
+    NONE, REDUCE_POWER, STOP_VEHICLE, ENGAGE_BRAKES, SHUTDOWN_SYSTEM, ALERT_OPERATOR
+};
+
+struct EmergencyResponse {
+    EmergencyLevel level;
+    EmergencyAction action;
+    std::string reason;
+    std::vector<std::string> steps;
+    bool isActive;
+    uint64_t timestamp;
+    uint32_t duration;
+};
+
+// 安全状态类型
+struct SafetyStatus {
+    SafetyCheckStatus overallStatus;
+    double safetyScore;
+    uint32_t activeViolations;
+    uint32_t totalChecks;
+    uint32_t passedChecks;
+    std::vector<SafetyViolation> currentViolations;
+    EmergencyLevel emergencyLevel;
+    bool emergencyStopActive;
+    uint64_t lastCheckTime;
+    uint64_t timestamp;
+};
+
+
 // GPIO引脚常量定义
 constexpr uint32_t GPIO_PIN_IMPLEMENT_LIFT = 12;
 constexpr uint32_t GPIO_PIN_IMPLEMENT_LOWER = 13;
