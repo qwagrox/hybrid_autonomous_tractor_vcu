@@ -37,7 +37,10 @@ enum class DriveMode {
     EMERGENCY,
     PLOWING,
     SEEDING,
-    TRANSPORT
+    TRANSPORT,
+    ECO,
+    COMFORT,
+    SPORT
 };
 
 enum class LoadChangeType {
@@ -141,6 +144,8 @@ struct TractorVehicleState {
     double batterySOC;
     double engineRpm;
     double motorRpm;
+    double engineTemperature;
+    double motorTemperature;
     bool isWorking;
     bool isPTOEngaged;
     bool isTransporting;
@@ -587,6 +592,78 @@ struct PredictionPerformance {
     double robustnessScore;
     uint32_t sampleCount;
     Timestamp lastUpdate;
+};
+
+// 学习相关结构体 - 为adaptive_learner添加
+struct LearningExperience {
+    SensorData sensorData;
+    PerceptionData perceptionData;
+    ControlCommands commands;
+    double efficiency;
+    double fuelConsumption;
+    double performance;
+    double timestamp;
+    std::string context;
+    std::map<std::string, double> metrics;
+};
+
+struct LearningModel {
+    std::string modelType;
+    std::vector<double> parameters;
+    double accuracy;
+    double confidence;
+    uint32_t trainingIterations;
+    uint64_t lastTrainingTime;
+    std::map<std::string, double> hyperparameters;
+};
+
+struct OperatorBehavior {
+    std::string operatorId;
+    double aggressiveness;
+    double efficiency;
+    double experience;
+    std::vector<std::string> preferences;
+    std::map<std::string, double> behaviorMetrics;
+    uint64_t timestamp;
+};
+
+struct TaskRequirements {
+    std::string taskType;
+    double requiredPrecision;
+    double requiredSpeed;
+    double requiredEfficiency;
+    std::vector<std::string> constraints;
+    std::map<std::string, double> parameters;
+    uint64_t timestamp;
+};
+
+struct EnvironmentData {
+    double temperature;
+    double humidity;
+    double windSpeed;
+    double windDirection;
+    double soilMoisture;
+    double soilType;
+    double terrainSlope;
+    double visibility;
+    std::string weatherCondition;
+    std::map<std::string, double> environmentalFactors;
+    uint64_t timestamp;
+};
+
+struct PerformanceStatistics {
+    double fuelEfficiency;
+    double workEfficiency;
+    double energyEfficiency;
+    double operationalTime;
+    double idleTime;
+    double workingTime;
+    double averageSpeed;
+    double maxSpeed;
+    double totalDistance;
+    double totalWorkArea;
+    std::map<std::string, double> performanceMetrics;
+    uint64_t timestamp;
 };
 
 } // namespace VCUCore
