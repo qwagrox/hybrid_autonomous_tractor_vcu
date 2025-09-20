@@ -97,9 +97,10 @@ jobs:
           # 下载并编译ACADO（使用stable分支，与Eigen 3.2.10兼容）
           cd /tmp
           if [ ! -d "acado" ]; then
-            git clone https://github.com/acado/acado.git -b stable --depth 1
+            git clone https://github.com/acado/acado.git
           fi
           cd acado
+          git submodule update --recursive --init
           
           # 创建构建目录
           mkdir -p /tmp/acado-build
