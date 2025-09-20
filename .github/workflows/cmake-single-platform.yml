@@ -1,315 +1,59 @@
-name: VCU CMake Build and Test with libmpc++
-
-on:
-  push:
-    branches: [ main, develop, feature/* ]
-  pull_request:
-    branches: [ main, develop ]
-  workflow_dispatch:
-
-env:
-  BUILD_TYPE: Release
-  EIGEN_VERSION: "3.4.0"
-  LIBMPC_VERSION: "main"
-
-jobs:
-  build-and-test:
-    name: Build and Test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, ubuntu-20.04]
-        build_type: [Release, Debug]
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/vcpkg
-          /var/cache/apt
-          /tmp/eigen-${{ env.EIGEN_VERSION }}
-          /tmp/libmpc-build
-          /usr/local/include/Eigen
-          /usr/local/include/mpc
-        key: ${{ runner.os }}-deps-eigen${{ env.EIGEN_VERSION }}-libmpc-${{ hashFiles('**/CMakeLists.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-deps-eigen${{ env.EIGEN_VERSION }}-libmpc-
-          ${{ runner.os }}-deps-
-
-    - name: Update package lists
+- name: Install libmpc++ dependencies
       run: |
-        sudo apt-get update
-
-    - name: Install basic build tools
-      run: |
-        sudo apt-get install -y \
-          build-essential \
-          cmake \
-          ninja-build \
-          pkg-config \
-          wget \
-          git \
-          unzip \
-          curl
-
-    - name: Install Eigen3
-      run: |
-        echo "Installing Eigen3..."
-        sudo apt-get install -y libeigen3-dev
-        
-        # 验证安装
-        if [ -d "/usr/include/eigen3" ]; then
-          echo "✓ Eigen3 headers found at /usr/include/eigen3"
-          ls -la /usr/include/eigen3/
-        else
-          echo "✗ Eigen3 headers not found, trying alternative installation..."
-          
-          # 如果apt安装失败，从源码编译安装
-          cd /tmp
-          wget https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
-          tar -xzf eigen-3.4.0.tar.gz
-          cd eigen-3.4.0
-          mkdir build && cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local
-          sudo make install
-          
-          # 创建符号链接到标准位置
-          sudo ln -sf /usr/local/include/eigen3 /usr/include/eigen3
-        fi
-        
-        # 最终验证
-        if [ -f "/usr/include/eigen3/Eigen/Dense" ]; then
-          echo "✓ Eigen3 installation verified"
-        else
-          echo "✗ Eigen3 installation failed"
-          exit 1
-        fi
-
-    - name: Install libmpc++ dependencies (minimal)
-      run: |
-        echo "Installing minimal libmpc++ dependencies..."
-        # 只安装确实存在的包
+        echo "Installing libmpc++ dependencies..."
+        # 安装确实存在的包
         sudo apt-get install -y \
           libboost-all-dev \
           libblas-dev \
           liblapack-dev
         
         # 尝试安装可选依赖（如果失败就跳过）
-        sudo apt-get install -y libnlopt-cxx-dev || echo "NLopt not available, skipping..."
+        echo "Trying to install optional dependencies..."
+        sudo apt-get install -y libnlopt-cxx-dev || echo "⚠️ NLopt not available, skipping..."
+        sudo apt-get install -y libosqp-dev || echo "⚠️ OSQP not available, skipping..."
         
-        # 对于OSQP，我们可以跳过或者使用替代方案
-        echo "OSQP not required for basic libmpc++ functionality"
+        echo "✓ Basic dependencies installed successfully"
 
-    - name: Download prebuilt libmpc++ headers
+    - name: Download libmpc++ headers
       run: |
-        echo "Downloading prebuilt libmpc++ headers..."
+        echo "Downloading libmpc++ headers..."
         
         # 检查缓存
-        if [ -d "/tmp/libmpc-headers" ] && [ -f "/tmp/libmpc-headers/include/mpc/NLMPC.hpp" ]; then
+        if [ -d "/tmp/libmpc-main" ] && [ -f "/tmp/libmpc-main/include/mpc/NLMPC.hpp" ]; then
           echo "✓ libmpc++ headers found in cache"
         else
-          echo "Downloading libmpc++ from GitHub releases..."
+          echo "Downloading libmpc++ from GitHub..."
           
           cd /tmp
           
-          # 下载最新的release或者直接下载源码
-          if ! wget -q https://github.com/nicolapiccinelli/libmpc/archive/refs/tags/${{ env.LIBMPC_VERSION }}.tar.gz; then
-            echo "Release not found, downloading main branch..."
-            wget -q https://github.com/nicolapiccinelli/libmpc/archive/refs/heads/main.tar.gz -O libmpc-main.tar.gz
-            tar -xzf libmpc-main.tar.gz
-            mv libmpc-main libmpc-headers
-          else
-            tar -xzf ${{ env.LIBMPC_VERSION }}.tar.gz
-            mv libmpc-* libmpc-headers
+          # 使用git clone而不是wget，更可靠
+          if [ -d "libmpc-main" ]; then
+            rm -rf libmpc-main
           fi
+          
+          # 克隆最新的main分支
+          git clone https://github.com/nicolapiccinelli/libmpc.git libmpc-main --depth 1
+          
+          # 验证下载
+          if [ ! -f "/tmp/libmpc-main/include/mpc/NLMPC.hpp" ]; then
+            echo "❌ Failed to download libmpc++ headers"
+            exit 1
+          fi
+          
+          echo "✓ libmpc++ headers downloaded successfully"
         fi
         
         # 复制头文件到系统目录
+        echo "Installing libmpc++ headers..."
         sudo mkdir -p /usr/local/include
-        sudo cp -r /tmp/libmpc-headers/include/* /usr/local/include/
+        sudo cp -r /tmp/libmpc-main/include/* /usr/local/include/
         
         # 验证安装
         if [ -f "/usr/local/include/mpc/NLMPC.hpp" ]; then
           echo "✓ libmpc++ headers installation successful"
+          echo "Available headers:"
           ls -la /usr/local/include/mpc/ | head -5
         else
           echo "❌ libmpc++ headers installation failed"
           exit 1
         fi
-
-    - name: Verify installations
-      run: |
-        echo "=== Verification Summary ==="
-        echo "Eigen3 headers:"
-        ls -la /usr/local/include/Eigen/ | head -3
-        echo ""
-        echo "libmpc++ headers:"
-        ls -la /usr/local/include/mpc/ | head -3
-        echo ""
-        echo "NLopt library:"
-        pkg-config --exists nlopt && echo "✓ NLopt OK" || echo "❌ NLopt missing"
-        echo "OSQP library:"
-        pkg-config --exists osqp && echo "✓ OSQP OK" || echo "❌ OSQP missing"
-        echo ""
-        echo "Include paths:"
-        echo "  Eigen: /usr/local/include"
-        echo "  libmpc++: /usr/local/include"
-        echo "=========================="
-
-    - name: Install other dependencies
-      run: |
-        sudo apt-get install -y \
-          libgtest-dev \
-          libgmock-dev \
-          lcov \
-          cppcheck \
-          clang-format \
-          valgrind
-
-    - name: Setup CMake
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.20'
-
-    - name: Configure CMake
-      run: |
-        echo "Configuring CMake with libmpc++ support..."
-        
-        # 设置环境变量
-        export CMAKE_PREFIX_PATH="/usr/local:$CMAKE_PREFIX_PATH"
-        export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
-        
-        # 尝试标准配置
-        if cmake -B ${{github.workspace}}/build \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_CXX_STANDARD=17 \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-          -DCMAKE_PREFIX_PATH="/usr/local" \
-          -DEIGEN3_INCLUDE_DIR="/usr/local/include" \
-          -DLIBMPC_INCLUDE_DIR="/usr/local/include" \
-          -DWITHOUT_LIBMPC=OFF \
-          -G Ninja; then
-          echo "✓ CMake configuration successful with libmpc++"
-        else
-          echo "⚠️ Standard configuration failed, trying without libmpc++..."
-          # 备用配置：禁用libmpc++
-          cmake -B ${{github.workspace}}/build \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DCMAKE_CXX_STANDARD=17 \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DCMAKE_PREFIX_PATH="/usr/local" \
-            -DEIGEN3_INCLUDE_DIR="/usr/local/include" \
-            -DWITHOUT_LIBMPC=ON \
-            -G Ninja
-          echo "✓ CMake configuration successful without libmpc++"
-        fi
-
-    - name: Build project
-      run: |
-        echo "Building project..."
-        cmake --build ${{github.workspace}}/build \
-          --config ${{ matrix.build_type }} \
-          --parallel 2 \
-          --verbose
-
-    - name: Run tests
-      working-directory: ${{github.workspace}}/build
-      run: |
-        echo "Running tests..."
-        if command -v ctest &> /dev/null; then
-          ctest --output-on-failure --parallel 2
-        else
-          echo "CTest not available, skipping automated tests"
-        fi
-
-    - name: Test executables
-      working-directory: ${{github.workspace}}/build
-      run: |
-        echo "Testing built executables..."
-        echo "Available files:"
-        ls -la
-        
-        if [ -f "./vcu_main" ]; then
-          echo "Testing vcu_main..."
-          timeout 10s ./vcu_main || echo "vcu_main test completed (timeout is expected)"
-        fi
-        
-        if [ -f "./system_test" ]; then
-          echo "Testing system_test..."
-          timeout 10s ./system_test || echo "system_test completed (timeout is expected)"
-        fi
-        
-        if [ ! -f "./vcu_main" ] && [ ! -f "./system_test" ]; then
-          echo "No executables found to test"
-        fi
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: build-artifacts-${{ matrix.os }}-${{ matrix.build_type }}
-        path: |
-          build/vcu_main
-          build/system_test
-          build/compile_commands.json
-          build/CMakeFiles/CMakeOutput.log
-          build/CMakeFiles/CMakeError.log
-        retention-days: 7
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results-${{ matrix.os }}-${{ matrix.build_type }}
-        path: |
-          build/Testing/
-          build/**/*.xml
-        retention-days: 7
-
-  # 额外的代码质量检查任务
-  code-quality:
-    name: Code Quality Checks
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Install tools
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y cppcheck clang-format
-
-    - name: Run cppcheck
-      run: |
-        echo "Running cppcheck..."
-        cppcheck --enable=all --inconclusive --xml --xml-version=2 \
-          --suppress=missingIncludeSystem \
-          --suppress=unmatchedSuppression \
-          --suppress=unusedFunction \
-          src/ include/ 2> cppcheck-report.xml || true
-
-    - name: Check code formatting
-      run: |
-        echo "Checking code formatting..."
-        find src include -name "*.cpp" -o -name "*.hpp" | \
-          xargs clang-format --dry-run --Werror || \
-          echo "Code formatting issues found (non-blocking)"
-
-    - name: Upload code quality reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: code-quality-reports
-        path: |
-          cppcheck-report.xml
-        retention-days: 7
