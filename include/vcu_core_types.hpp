@@ -1,4 +1,4 @@
-// include/vcu_core_types.hpp - 基于实际代码的完整修复版本
+// include/vcu_core_types.hpp - 基于GitHub最新代码的完整修复版本
 #pragma once
 #include <Eigen/Dense>
 #include <vector>
@@ -8,6 +8,7 @@
 #include <chrono>
 #include <atomic>
 #include <functional>
+#include <array>
 
 namespace VCUCore {
 
@@ -74,6 +75,15 @@ enum class FaultSeverity {
     MEDIUM,
     HIGH,
     CRITICAL
+};
+
+// 预测策略枚举
+enum class PredictionStrategy {
+    SIMPLE_LINEAR,
+    KALMAN_FILTER,
+    NEURAL_NETWORK,
+    HYBRID_APPROACH,
+    NMPC_BASED
 };
 
 // 基础结构体定义
@@ -241,6 +251,57 @@ struct OptimizationResult {
     uint64_t timestamp;
 };
 
+// 能源管理相关结构体 - 添加缺失的类型
+struct EnergyOptimization {
+    double optimalEngineTorque;
+    double optimalMotorTorque;
+    double optimalBatteryPower;
+    double predictedEfficiency;
+    double estimatedFuelSaving;
+    double computationTime;
+    bool isValid;
+    uint64_t timestamp;
+};
+
+struct PowerFlow {
+    double enginePower;
+    double motorPower;
+    double batteryPower;
+    double hydraulicPower;
+    double auxiliaryPower;
+    double totalDemand;
+    double efficiency;
+    double operatingCost;
+    uint64_t timestamp;
+};
+
+enum class ChargingMode {
+    NONE,
+    REGENERATIVE,
+    GRID_CHARGING,
+    SOLAR_CHARGING,
+    HYBRID_CHARGING
+};
+
+struct ChargingStrategy {
+    ChargingMode mode;
+    double targetSOC;
+    double chargingRate;
+    double estimatedTime;
+    double estimatedCost;
+    bool isOptimal;
+    uint64_t timestamp;
+};
+
+struct EnergyForecast {
+    std::vector<double> powerDemandForecast;
+    std::vector<double> batterySOCForecast;
+    std::vector<double> fuelConsumptionForecast;
+    double forecastHorizon;
+    double confidence;
+    uint64_t timestamp;
+};
+
 // 电池相关结构体
 struct CellModel {
     double voltage;
@@ -387,11 +448,11 @@ struct SystemParameters {
     uint64_t lastCalibrationTime;
 };
 
-// CVT制造商参数结构体
+// CVT制造商参数结构体 - 统一定义，避免重复
 struct CVTManufacturerParams {
-    double minRatio;
-    double maxRatio;
-    double defaultRatio;
+    float minRatio;
+    float maxRatio;
+    float defaultRatio;
     std::string name;
 };
 
@@ -462,10 +523,46 @@ struct DiagnosticResult {
     uint64_t timestamp;
 };
 
-// 注意：不在这里重复定义以下结构体，因为它们在其他头文件中已定义
-// - DynamicsStatistics (在vehicle_dynamics_model.hpp中定义)
-// - DynamicsFault (在vehicle_dynamics_model.hpp中定义)
-// - StabilityAssessment (在vehicle_dynamics_model.hpp中定义)
-// - PredictionPerformance (在predictive_analytics.hpp中定义)
+// 动力学相关结构体 - 统一定义，避免重复
+struct DynamicsStatistics {
+    float maxAcceleration;
+    float maxDeceleration;
+    float maxSpeed;
+    float averagePower;
+    float energyEfficiency;
+    float stabilityMargin;
+    uint32_t stabilityEvents;
+    uint32_t slipEvents;
+};
+
+struct DynamicsFault {
+    uint16_t faultCode;
+    FaultSeverity severity;
+    std::string description;
+    std::string component;
+    uint32_t timestamp;
+    float magnitude;
+    bool isRecoverable;
+};
+
+struct StabilityAssessment {
+    float rollStability;
+    float yawStability;
+    float pitchStability;
+    float overallStability;
+    bool isStable;
+    std::vector<std::string> stabilityIssues;
+};
+
+// 预测性能结构体 - 统一定义，避免重复
+struct PredictionPerformance {
+    PredictionStrategy strategy;
+    double averageError;
+    double maxError;
+    double computationalTime;
+    double robustnessScore;
+    uint32_t sampleCount;
+    Timestamp lastUpdate;
+};
 
 } // namespace VCUCore
