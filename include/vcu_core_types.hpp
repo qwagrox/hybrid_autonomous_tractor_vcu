@@ -666,4 +666,38 @@ struct PerformanceStatistics {
     uint64_t timestamp;
 };
 
+struct ActuatorCommand {
+    std::string actuatorId;
+    std::string commandType;
+    double value;
+    double targetPosition;
+    double targetSpeed;
+    double engineTorque;
+    double motorTorque;
+    bool isEnabled;
+    uint32_t priority;
+    uint64_t timestamp;
+    std::map<std::string, double> parameters;
+};
+
+struct ActuatorDiagnostic {
+    std::string actuatorId;
+    std::string diagnosticType;
+    bool isHealthy;
+    double responseTime;
+    double accuracy;
+    std::string errorMessage;
+    uint32_t errorCode;
+    uint64_t timestamp;
+    std::map<std::string, double> diagnosticData;
+};
+
+// GPIO引脚常量定义
+constexpr uint32_t GPIO_PIN_IMPLEMENT_LIFT = 12;
+constexpr uint32_t GPIO_PIN_IMPLEMENT_LOWER = 13;
+constexpr uint32_t GPIO_PIN_PTO_ENGAGE = 14;
+constexpr uint32_t GPIO_PIN_PTO_DISENGAGE = 15;
+constexpr uint32_t GPIO_PIN_HYDRAULIC_ENABLE = 16;
+constexpr uint32_t GPIO_PIN_HYDRAULIC_DISABLE = 17;
+
 } // namespace VCUCore

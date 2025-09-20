@@ -31,7 +31,7 @@ SystemHealthStatus HealthMonitor::checkSystemHealth() {
     
     // 获取各子系统状态
     if (batteryModel_) {
-        auto batteryState = batteryModel_->getBatteryState();
+        auto batteryState = batteryModel_->getCurrentState();
         status.batteryLevel = batteryState.stateOfCharge;
     } else {
         status.batteryLevel = 0.8; // 默认值
@@ -283,7 +283,7 @@ std::string HealthMonitor::generateMaintenanceReport() const {
         report += "Component: " + item.component + "\n";
         report += "  Description: " + item.description + "\n";
         report += "  Priority: " + std::to_string(item.priority) + "\n";
-        report += "  Overdue: " + (item.isOverdue ? "Yes" : "No") + "\n\n";
+        report += "  Overdue: " + std::string(item.isOverdue ? "Yes" : "No") + "\n\n";
     }
     
     return report;
