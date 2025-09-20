@@ -1,4 +1,3 @@
-// src/execution/safety_monitor.cpp
 #include "execution/safety_monitor.hpp"
 #include <algorithm>
 #include <cmath>
@@ -9,21 +8,21 @@ namespace VCUCore {
 SafetyMonitor::SafetyMonitor(uint32_t historySize, uint32_t checkInterval)
     : maxViolationHistory_(historySize), checkIntervalMs_(checkInterval),
       safetyViolation_(false), adaptiveSafetyMargin_(1.0f) {
-    
+
     initializeDefaultLimits();
-    
-    // 初始化模型
+
+    // Initialize models
     engineModel_ = std::make_unique<EngineModel>();
     motorModel_ = std::make_unique<MotorModel>();
     batteryModel_ = std::make_unique<BatteryModel>();
-    
-    // 初始化风险模式
+
+    // Initialize risk patterns
     std::fill(riskPattern_.begin(), riskPattern_.end(), 0.5f);
     std::fill(safetyScores_.begin(), safetyScores_.end(), 1.0f);
 }
 
 void SafetyMonitor::initializeDefaultLimits() {
-    // 默认安全限制
+    // Default safety limits
     limits_ = {
         .maxEngineTorque = 600.0f,
         .maxMotorTorque = 450.0f,
@@ -43,31 +42,32 @@ void SafetyMonitor::initializeDefaultLimits() {
 SafetyCheckResult SafetyMonitor::checkSafety(const ControlCommands& commands,
                                            const TractorVehicleState& vehicleState,
                                            const SystemHealthStatus& healthStatus) {
-    
-    SafetyCheckResult result;
-    result.timestamp = std::chrono::duration_cast<Timestamp>(
-        std::chrono::system_clock::now().time_since_epoch());
-    
-    // 执行各项安全检查
-    result.torqueCheck = checkTorqueLimits(commands, vehicleState);
-    result.speedCheck = checkSpeedLimits(vehicleState);
-    result.temperatureCheck = checkTemperatureLimits(healthStatus);
-    result.stabilityCheck = checkStabilityLimits(vehicleState);
-    
-    // 组合检查结果
-    result.overallSafe = result.torqueCheck.isSafe &&
-                        result.speedCheck.isSafe &&
-                        result.temperatureCheck.isSafe &&
-                        result.stabilityCheck.isSafe;
-    
+
+    SafetyCheckResult result{};
+    result.timestamp = getCurrentTimestamp();
+
+    // Perform various safety checks
+    auto torqueCheck = checkTorqueLimits(commands, vehicleState);
+    auto speedCheck = checkSpeedLimits(vehicleState);
+    auto temperatureCheck = checkTemperatureLimits(healthStatus);
+    auto stabilityCheck = checkStabilityLimits(vehicleState);
+
+    result.violations.insert(result.violations.end(), torqueCheck.violations.begin(), torqueCheck.violations.end());
+    result.violations.insert(result.violations.end(), speedCheck.violations.begin(), speedCheck.violations.end());
+    result.violations.insert(result.violations.end(), temperatureCheck.violations.begin(), temperatureCheck.violations.end());
+    result.violations.insert(result.violations.end(), stabilityCheck.violations.begin(), stabilityCheck.violations.end());
+
+    // Combine check results
+    result.isSafe = torqueCheck.isSafe && speedCheck.isSafe && temperatureCheck.isSafe && stabilityCheck.isSafe;
+
     result.riskScore = calculateRiskScore(vehicleState, EnvironmentData{});
-    
-    // 更新安全状态
-    if (!result.overallSafe) {
+
+    // Update safety status
+    if (!result.isSafe) {
         safetyViolation_ = true;
-        
-        // 记录严重违规
-        for (const auto& violation : result.torqueCheck.violations) {
+
+        // Log critical violations
+        for (const auto& violation : result.violations) {
             if (isCriticalViolation(violation)) {
                 logViolation(violation);
             }
@@ -75,241 +75,237 @@ SafetyCheckResult SafetyMonitor::checkSafety(const ControlCommands& commands,
     } else {
         safetyViolation_ = false;
     }
-    
+
     return result;
 }
 
 bool SafetyMonitor::validateCommands(const ControlCommands& commands, const TractorVehicleState& state) {
-    // 快速命令验证
+    // Quick command validation
     if (commands.engineTorqueRequest > limits_.maxEngineTorque * 1.1f) {
         return false;
     }
-    
+
     if (commands.motorTorqueRequest > limits_.maxMotorTorque * 1.1f) {
         return false;
     }
-    
+
     if (commands.cvtRatioRequest < 0.4f || commands.cvtRatioRequest > 3.2f) {
         return false;
     }
-    
+
     if (state.velocity.norm() > limits_.maxVehicleSpeed * 1.1f) {
         return false;
     }
-    
+
     return true;
 }
 
 ControlCommands SafetyMonitor::applySafetyLimits(const ControlCommands& commands, const TractorVehicleState& state) {
     ControlCommands safeCommands = commands;
-    
-    // 应用扭矩限制
+
+    // Apply torque limits
     safeCommands = limitTorqueCommands(safeCommands, state);
-    
-    // 应用速度限制
+
+    // Apply speed limits
     safeCommands = limitSpeedCommands(safeCommands, state);
-    
-    // 应用紧急限制
+
+    // Apply emergency limits
     if (safetyViolation_) {
         safeCommands = limitEmergencyCommands(safeCommands);
     }
-    
+
     return safeCommands;
 }
 
 SafetyCheckResult SafetyMonitor::checkTorqueLimits(const ControlCommands& commands, const TractorVehicleState& state) {
-    SafetyCheckResult result;
-    
-    // 检查发动机扭矩
+    SafetyCheckResult result{};
+    result.timestamp = getCurrentTimestamp();
+
+    // Check engine torque
     if (commands.engineTorqueRequest > limits_.maxEngineTorque * adaptiveSafetyMargin_) {
-        SafetyViolation violation = {
-            .type = ViolationType::TORQUE_OVERLIMIT,
+        result.violations.push_back({
+            .type = ViolationType::TORQUE_LIMIT_EXCEEDED,
+            .severity = ViolationSeverity::HIGH,
             .component = "Engine",
-            .severity = ViolationSeverity::HIGH,
+            .value = commands.engineTorqueRequest,
+            .limit = limits_.maxEngineTorque,
             .currentValue = commands.engineTorqueRequest,
-            .limitValue = limits_.maxEngineTorque,
-            .timestamp = std::chrono::duration_cast<Timestamp>(
-                std::chrono::system_clock::now().time_since_epoch())
-        };
-        result.violations.push_back(violation);
+            .timestamp = getCurrentTimestamp()
+        });
     }
-    
-    // 检查电机扭矩
+
+    // Check motor torque
     if (commands.motorTorqueRequest > limits_.maxMotorTorque * adaptiveSafetyMargin_) {
-        SafetyViolation violation = {
-            .type = ViolationType::TORQUE_OVERLIMIT,
-            .component = "Motor",
+        result.violations.push_back({
+            .type = ViolationType::TORQUE_LIMIT_EXCEEDED,
             .severity = ViolationSeverity::HIGH,
+            .component = "Motor",
+            .value = commands.motorTorqueRequest,
+            .limit = limits_.maxMotorTorque,
             .currentValue = commands.motorTorqueRequest,
-            .limitValue = limits_.maxMotorTorque,
-            .timestamp = std::chrono::duration_cast<Timestamp>(
-                std::chrono::system_clock::now().time_since_epoch())
-        };
-        result.violations.push_back(violation);
+            .timestamp = getCurrentTimestamp()
+        });
     }
-    
-    // 检查扭矩变化率
-    float torqueChangeRate = std::abs(commands.engineTorqueRequest - state.actualTorque);
+
+    // Check torque change rate
+    float torqueChangeRate = std::abs(static_cast<float>(commands.engineTorqueRequest) - state.actualTorque);
     if (torqueChangeRate > 100.0f) { // 100 Nm/s
-        SafetyViolation violation = {
+        result.violations.push_back({
             .type = ViolationType::TORQUE_RATE_OVERLIMIT,
-            .component = "Powertrain",
             .severity = ViolationSeverity::MEDIUM,
+            .component = "Powertrain",
+            .value = torqueChangeRate,
+            .limit = 100.0f,
             .currentValue = torqueChangeRate,
-            .limitValue = 100.0f,
-            .timestamp = std::chrono::duration_cast<Timestamp>(
-                std::chrono::system_clock::now().time_since_epoch())
-        };
-        result.violations.push_back(violation);
+            .timestamp = getCurrentTimestamp()
+        });
     }
-    
+
     result.isSafe = result.violations.empty();
     return result;
 }
 
 SafetyCheckResult SafetyMonitor::checkSpeedLimits(const TractorVehicleState& state) {
-    SafetyCheckResult result;
-    
-    // 检查车辆速度
+    SafetyCheckResult result{};
+    result.timestamp = getCurrentTimestamp();
+
+    // Check vehicle speed
     if (state.velocity.norm() > limits_.maxVehicleSpeed) {
-        SafetyViolation violation = {
-            .type = ViolationType::SPEED_OVERLIMIT,
+        result.violations.push_back({
+            .type = ViolationType::SPEED_LIMIT_EXCEEDED,
+            .severity = ViolationSeverity::HIGH,
             .component = "Vehicle",
-            .severity = ViolationSeverity::HIGH,
+            .value = state.velocity.norm(),
+            .limit = limits_.maxVehicleSpeed,
             .currentValue = state.velocity.norm(),
-            .limitValue = limits_.maxVehicleSpeed,
-            .timestamp = std::chrono::duration_cast<Timestamp>(
-                std::chrono::system_clock::now().time_since_epoch())
-        };
-        result.violations.push_back(violation);
+            .timestamp = getCurrentTimestamp()
+        });
     }
-    
-    // 检查发动机转速
+
+    // Check engine speed
     if (state.engineRpm > limits_.maxEngineSpeed) {
-        SafetyViolation violation = {
+        result.violations.push_back({
             .type = ViolationType::RPM_OVERLIMIT,
-            .component = "Engine",
             .severity = ViolationSeverity::HIGH,
+            .component = "Engine",
+            .value = state.engineRpm,
+            .limit = limits_.maxEngineSpeed,
             .currentValue = state.engineRpm,
-            .limitValue = limits_.maxEngineSpeed,
-            .timestamp = std::chrono::duration_cast<Timestamp>(
-                std::chrono::system_clock::now().time_since_epoch())
-        };
-        result.violations.push_back(violation);
+            .timestamp = getCurrentTimestamp()
+        });
     }
-    
+
     result.isSafe = result.violations.empty();
     return result;
 }
 
 SafetyCheckResult SafetyMonitor::checkTemperatureLimits(const SystemHealthStatus& healthStatus) {
-    SafetyCheckResult result;
-    
-    // 检查系统温度
+    SafetyCheckResult result{};
+    result.timestamp = getCurrentTimestamp();
+
+    // Check system temperature
     for (const auto& fault : healthStatus.activeFaults) {
         if (fault.component.find("temperature") != std::string::npos &&
-            fault.severity >= FaultSeverity::WARNING) {
-            SafetyViolation violation = {
-                .type = ViolationType::TEMPERATURE_OVERLIMIT,
-                .component = fault.component,
+            fault.severity >= static_cast<double>(FaultSeverity::WARNING)) {
+            result.violations.push_back({
+                .type = ViolationType::TEMPERATURE_LIMIT_EXCEEDED,
                 .severity = ViolationSeverity::MEDIUM,
-                .currentValue = 0.0f, // 需要实际温度值
-                .limitValue = limits_.maxSystemTemperature,
-                .timestamp = std::chrono::duration_cast<Timestamp>(
-                    std::chrono::system_clock::now().time_since_epoch())
-            };
-            result.violations.push_back(violation);
+                .component = fault.component,
+                .value = 0.0f, // Actual temperature value needed
+                .limit = limits_.maxSystemTemperature,
+                .currentValue = 0.0f,
+                .timestamp = getCurrentTimestamp()
+            });
         }
     }
-    
+
     result.isSafe = result.violations.empty();
     return result;
 }
 
 SafetyCheckResult SafetyMonitor::checkStabilityLimits(const TractorVehicleState& state) {
-    SafetyCheckResult result;
-    
-    // 检查侧倾风险
-    float rollAngle = std::abs(state.roll);
+    SafetyCheckResult result{};
+    result.timestamp = getCurrentTimestamp();
+
+    // Check roll risk
+    float rollAngle = std::abs(static_cast<float>(state.roll));
     if (rollAngle > limits_.rolloverThreshold) {
-        SafetyViolation violation = {
+        result.violations.push_back({
             .type = ViolationType::STABILITY_RISK,
-            .component = "Chassis",
             .severity = ViolationSeverity::CRITICAL,
+            .component = "Chassis",
+            .value = rollAngle,
+            .limit = limits_.rolloverThreshold,
             .currentValue = rollAngle,
-            .limitValue = limits_.rolloverThreshold,
-            .timestamp = std::chrono::duration_cast<Timestamp>(
-                std::chrono::system_clock::now().time_since_epoch())
-        };
-        result.violations.push_back(violation);
+            .timestamp = getCurrentTimestamp()
+        });
     }
-    
-    // 检查轮滑
+
+    // Check wheel slip
     if (state.wheelSlipRatio > limits_.wheelSlipThreshold) {
-        SafetyViolation violation = {
+        result.violations.push_back({
             .type = ViolationType::WHEEL_SLIP,
-            .component = "Drivetrain",
             .severity = ViolationSeverity::MEDIUM,
+            .component = "Drivetrain",
+            .value = state.wheelSlipRatio,
+            .limit = limits_.wheelSlipThreshold,
             .currentValue = state.wheelSlipRatio,
-            .limitValue = limits_.wheelSlipThreshold,
-            .timestamp = std::chrono::duration_cast<Timestamp>(
-                std::chrono::system_clock::now().time_since_epoch())
-        };
-        result.violations.push_back(violation);
+            .timestamp = getCurrentTimestamp()
+        });
     }
-    
+
     result.isSafe = result.violations.empty();
     return result;
 }
 
 ControlCommands SafetyMonitor::limitTorqueCommands(const ControlCommands& commands, const TractorVehicleState& state) {
     ControlCommands limited = commands;
-    
-    // 限制发动机扭矩
+
+    // Limit engine torque
     limited.engineTorqueRequest = std::min(limited.engineTorqueRequest,
         static_cast<double>(limits_.maxEngineTorque * adaptiveSafetyMargin_));
-    
-    // 限制电机扭矩
+
+    // Limit motor torque
     limited.motorTorqueRequest = std::min(limited.motorTorqueRequest,
         static_cast<double>(limits_.maxMotorTorque * adaptiveSafetyMargin_));
-    
-    // 限制扭矩变化率
+
+    // Limit torque change rate
     double currentTorque = static_cast<double>(state.actualTorque);
-    double maxChange = 100.0 * (1.0 / 100.0); // 100 Nm/s 变化率限制
-    
+    double maxChange = 100.0 * (1.0 / 100.0); // 100 Nm/s change rate limit
+
     limited.engineTorqueRequest = std::clamp(limited.engineTorqueRequest,
         currentTorque - maxChange, currentTorque + maxChange);
-    
+
     return limited;
 }
 
 ControlCommands SafetyMonitor::limitEmergencyCommands(const ControlCommands& commands) {
     ControlCommands emergencyCommands = commands;
-    
-    // 紧急状态下限制命令
+
+    // Limit commands in emergency state
     emergencyCommands.engineTorqueRequest *= 0.5f;
     emergencyCommands.motorTorqueRequest *= 0.5f;
     emergencyCommands.hydraulicPressureRequest = 0.0f;
     emergencyCommands.emergencyStop = true;
-    
+
     return emergencyCommands;
 }
 
 float SafetyMonitor::calculateRiskScore(const TractorVehicleState& state, const EnvironmentData& environment) const {
     float score = 0.0f;
-    
-    // 速度风险
+
+    // Speed risk
     score += (state.velocity.norm() / limits_.maxVehicleSpeed) * 0.3f;
-    
-    // 负载风险
+
+    // Load risk
     score += (state.drawbarPull / 10000.0f) * 0.2f;
-    
-    // 地形风险
-    score += (std::abs(state.gradeAngle) / 0.3f) * 0.2f; // 30%坡度
-    
-    // 时间风险（夜间或恶劣天气）
-    score += riskPattern_[0] * 0.3f; // 简化实现
-    
+
+    // Terrain risk
+    score += (std::abs(static_cast<float>(state.gradeAngle)) / 0.3f) * 0.2f; // 30% slope
+
+    // Time risk (night or bad weather)
+    score += riskPattern_[0] * 0.3f; // Simplified implementation
+
     return std::min(score, 1.0f);
 }
 
@@ -318,14 +314,14 @@ void SafetyMonitor::logViolation(const SafetyViolation& violation) {
     if (violationHistory_.size() > maxViolationHistory_) {
         violationHistory_.erase(violationHistory_.begin());
     }
-    
-    // 更新安全评分
+
+    // Update safety score
     float violationScore = static_cast<float>(violation.severity) / 10.0f;
     updateSafetyScore(1.0f - violationScore);
 }
 
 void SafetyMonitor::updateSafetyScore(float newScore) {
-    // 移动平均更新安全评分
+    // Moving average update of safety score
     for (int i = safetyScores_.size() - 1; i > 0; --i) {
         safetyScores_[i] = safetyScores_[i - 1];
     }
@@ -346,4 +342,42 @@ bool SafetyMonitor::isCriticalViolation(const SafetyViolation& violation) const 
            violation.type == ViolationType::COLLISION_IMMINENT;
 }
 
+// Dummy implementations for functions that require more context
+SafetyCheckResult SafetyMonitor::checkBatteryLimits(const BatteryState& battery) { 
+    SafetyCheckResult result{};
+    result.isSafe = true;
+    return result; 
+}
+
+SafetyCheckResult SafetyMonitor::checkCollisionRisk(const TractorVehicleState& state, const PerceptionData& perception) { 
+    SafetyCheckResult result{};
+    result.isSafe = true;
+    return result; 
+}
+
+RiskAssessment SafetyMonitor::assessRisk(const TractorVehicleState& state, const PredictionResult& prediction) const {
+    return RiskAssessment{};
+}
+
+EmergencyResponse SafetyMonitor::handleEmergency(const SafetyViolation& violation) {
+    return EmergencyResponse{};
+}
+
+bool SafetyMonitor::triggerEmergencyStop(EmergencyLevel level, const std::string& reason) {
+    return true;
+}
+
+void SafetyMonitor::updateSafetyModel(const TractorVehicleState& state, const SafetyViolation& violation) {}
+
+void SafetyMonitor::adjustSafetyLimitsBasedOnExperience() {}
+
+SafetyStatus SafetyMonitor::getSafetyStatus() const {
+    return SafetyStatus{};
+}
+
+std::vector<SafetyViolation> SafetyMonitor::getViolationHistory() const {
+    return violationHistory_;
+}
+
 } // namespace VCUCore
+

@@ -1,166 +1,205 @@
-cmake_minimum_required(VERSION 3.16)
-project(HybridAutonomousTractorVCU)
+cmake_minimum_required(VERSION 3.10)
+project(vcu_main)
 
-# 设置C++标准
+# 设置C++标准为20（libmpc++需要C++20）
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# 编译选项
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-parameter -Wno-unused-variable -Wno-narrowing")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
-
-# 包含目录
-include_directories(include)
-include_directories(third_party)  # 包含内嵌的libmpc++
-
 # 查找Eigen3
-find_package(Eigen3 REQUIRED)
+set(EIGEN3_FOUND FALSE)
+
+# 方法1: 尝试使用find_package
+find_package(Eigen3 3.3 QUIET NO_MODULE)
 if(Eigen3_FOUND)
-    message(STATUS "Found Eigen3: ${EIGEN3_INCLUDE_DIR}")
-    include_directories(${EIGEN3_INCLUDE_DIR})
+    message(STATUS "Found Eigen3 using find_package: ${Eigen3_VERSION}")
+    set(EIGEN3_FOUND TRUE)
+    set(EIGEN3_TARGET Eigen3::Eigen)
+endif()
+
+# 方法2: 尝试使用pkg-config
+if(NOT EIGEN3_FOUND)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(PC_EIGEN3 QUIET eigen3)
+        if(PC_EIGEN3_FOUND)
+            message(STATUS "Found Eigen3 using pkg-config: ${PC_EIGEN3_VERSION}")
+            set(EIGEN3_FOUND TRUE)
+            set(EIGEN3_INCLUDE_DIRS ${PC_EIGEN3_INCLUDE_DIRS})
+        endif()
+    endif()
+endif()
+
+# 方法3: 直接查找标准路径
+if(NOT EIGEN3_FOUND)
+    set(EIGEN3_SEARCH_PATHS
+        "/usr/include/eigen3"
+        "/usr/local/include/eigen3"
+        "/opt/eigen3/include"
+        "/opt/local/include/eigen3"
+    )
+    
+    foreach(SEARCH_PATH ${EIGEN3_SEARCH_PATHS})
+        if(EXISTS "${SEARCH_PATH}/Eigen/Dense")
+            message(STATUS "Found Eigen3 at: ${SEARCH_PATH}")
+            set(EIGEN3_FOUND TRUE)
+            set(EIGEN3_INCLUDE_DIRS ${SEARCH_PATH})
+            break()
+        endif()
+    endforeach()
+endif()
+
+if(NOT EIGEN3_FOUND)
+    message(FATAL_ERROR "Eigen3 not found! Please install libeigen3-dev.")
+endif()
+
+# 查找libmpc++（可选）
+set(LIBMPC_FOUND FALSE)
+option(WITHOUT_LIBMPC "Build without libmpc++ support" OFF)
+
+if(NOT WITHOUT_LIBMPC)
+    set(LIBMPC_SEARCH_PATHS
+        "/usr/local/include"
+        "/usr/include"
+        "/opt/libmpc/include"
+    )
+    
+    foreach(SEARCH_PATH ${LIBMPC_SEARCH_PATHS})
+        if(EXISTS "${SEARCH_PATH}/mpc/NLMPC.hpp")
+            message(STATUS "Found libmpc++ headers at: ${SEARCH_PATH}")
+            set(LIBMPC_FOUND TRUE)
+            set(LIBMPC_INCLUDE_DIRS ${SEARCH_PATH})
+            add_definitions(-DWITH_LIBMPC)
+            break()
+        endif()
+    endforeach()
+endif()
+
+if(LIBMPC_FOUND)
+    message(STATUS "libmpc++ found and will be used with C++20")
 else()
-    message(FATAL_ERROR "Eigen3 not found")
+    message(STATUS "libmpc++ not found, building without MPC support")
 endif()
 
-# 查找NLopt (libmpc++依赖)
-find_package(PkgConfig QUIET)
-set(NLOPT_FOUND FALSE)
-if(PkgConfig_FOUND)
-    pkg_check_modules(NLOPT QUIET nlopt)
-    if(NLOPT_FOUND)
-        message(STATUS "Found NLopt: ${NLOPT_INCLUDE_DIRS}")
-        include_directories(${NLOPT_INCLUDE_DIRS})
-        link_directories(${NLOPT_LIBRARY_DIRS})
-    else()
-        # 尝试直接查找
-        find_library(NLOPT_LIBRARIES nlopt)
-        find_path(NLOPT_INCLUDE_DIRS nlopt.h)
-        if(NLOPT_LIBRARIES AND NLOPT_INCLUDE_DIRS)
-            set(NLOPT_FOUND TRUE)
-            message(STATUS "Found NLopt: ${NLOPT_INCLUDE_DIRS}")
-            include_directories(${NLOPT_INCLUDE_DIRS})
-        endif()
-    endif()
+# 查找其他依赖
+find_package(GTest QUIET)
+if(NOT GTest_FOUND)
+    message(STATUS "GTest not found, building without test support")
 endif()
 
-# 查找OSQP (libmpc++依赖)
-set(OSQP_FOUND FALSE)
-if(PkgConfig_FOUND)
-    pkg_check_modules(OSQP QUIET osqp)
-    if(OSQP_FOUND)
-        message(STATUS "Found OSQP: ${OSQP_INCLUDE_DIRS}")
-        include_directories(${OSQP_INCLUDE_DIRS})
-        link_directories(${OSQP_LIBRARY_DIRS})
-    else()
-        # 尝试直接查找
-        find_library(OSQP_LIBRARIES osqp)
-        find_path(OSQP_INCLUDE_DIRS osqp.h)
-        if(OSQP_LIBRARIES AND OSQP_INCLUDE_DIRS)
-            set(OSQP_FOUND TRUE)
-            message(STATUS "Found OSQP: ${OSQP_INCLUDE_DIRS}")
-            include_directories(${OSQP_INCLUDE_DIRS})
-        endif()
-    endif()
-endif()
-
-# 设置编译定义
-add_definitions(-DWITH_LIBMPC)
-message(STATUS "Building with embedded libmpc++")
-
-# 如果找不到NLopt或OSQP，给出警告但继续编译
-if(NOT NLOPT_FOUND)
-    message(WARNING "NLopt not found. Some libmpc++ features may not work.")
-endif()
-
-if(NOT OSQP_FOUND)
-    message(WARNING "OSQP not found. Some libmpc++ features may not work.")
-endif()
-
-# 收集源文件
-file(GLOB_RECURSE SOURCES 
-    "src/*.cpp"
-    "src/*/*.cpp"
+# 设置包含目录
+include_directories(
+    include
+    ${EIGEN3_INCLUDE_DIRS}
 )
 
-# 收集头文件
-file(GLOB_RECURSE HEADERS 
-    "include/*.hpp"
-    "include/*/*.hpp"
-    "third_party/mpc/*.hpp"
-)
-
-# 创建库
-add_library(vcu_core ${SOURCES})
-target_include_directories(vcu_core PUBLIC 
-    include 
-    third_party
-    ${EIGEN3_INCLUDE_DIR}
-)
-target_link_libraries(vcu_core Eigen3::Eigen)
-
-# 链接libmpc++的依赖
-if(NLOPT_FOUND)
-    target_link_libraries(vcu_core ${NLOPT_LIBRARIES})
+if(LIBMPC_FOUND)
+    include_directories(${LIBMPC_INCLUDE_DIRS})
 endif()
 
-if(OSQP_FOUND)
-    target_link_libraries(vcu_core ${OSQP_LIBRARIES})
-endif()
-
-# 创建测试可执行文件
-add_executable(system_test tests/system_test.cpp)
-target_include_directories(system_test PRIVATE 
-    include 
-    third_party
-    ${EIGEN3_INCLUDE_DIR}
-)
-target_link_libraries(system_test vcu_core Eigen3::Eigen)
-
-# 链接libmpc++的依赖
-if(NLOPT_FOUND)
-    target_link_libraries(system_test ${NLOPT_LIBRARIES})
-endif()
-
-if(OSQP_FOUND)
-    target_link_libraries(system_test ${OSQP_LIBRARIES})
-endif()
-
-# 设置输出目录
-set_target_properties(system_test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
-)
-
-# 安装规则
-install(TARGETS vcu_core system_test
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin
+# 主程序
+add_executable(vcu_main
+    src/main_vcu_system.cpp
+    src/can_bus_interface.cpp
+    src/control/braking_controller.cpp
+    src/control/cvt_controller.cpp
+    src/control/energy_manager.cpp
+    src/control/implement_control_manager.cpp
+    src/control/implement_drivers/fertilizer_controller.cpp
+    src/control/implement_drivers/plow_controller.cpp
+    src/control/implement_drivers/seeder_controller.cpp
+    src/control/implement_drivers/sprayer_controller.cpp
+    src/control/steering_controller.cpp
+    src/control/torque_arbiter.cpp
+    src/diagnostic/adaptive_learner.cpp
+    src/diagnostic/data_logger.cpp
+    src/diagnostic/health_monitor.cpp
+    src/execution/actuator_interface.cpp
+    src/execution/fault_handler.cpp
+    src/hardware/watchdog.cpp
+    src/models/battery_model.cpp
+    src/models/engine_model.cpp
+    src/models/motor_model.cpp
+    src/perception/load_detector.cpp
+    src/perception/sensor_fusion.cpp
+    src/prediction/predictive_analytics.cpp
+    src/system_integration.cpp
+    src/utils/tractor_state_calculator.cpp
 )
 
-install(DIRECTORY include/ DESTINATION include)
-install(DIRECTORY third_party/ DESTINATION include)
+# 链接库
+set(VCU_MAIN_LIBS pthread)
 
-# 打印配置信息
-message(STATUS "=== Build Configuration ===")
-message(STATUS "CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER}")
-message(STATUS "CMAKE_CXX_STANDARD: ${CMAKE_CXX_STANDARD}")
-message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-message(STATUS "WITH_LIBMPC: ON (embedded)")
-message(STATUS "EIGEN3_INCLUDE_DIR: ${EIGEN3_INCLUDE_DIR}")
-message(STATUS "NLOPT_FOUND: ${NLOPT_FOUND}")
-if(NLOPT_FOUND)
-    message(STATUS "NLOPT_INCLUDE_DIRS: ${NLOPT_INCLUDE_DIRS}")
-    message(STATUS "NLOPT_LIBRARIES: ${NLOPT_LIBRARIES}")
+if(TARGET ${EIGEN3_TARGET})
+    list(APPEND VCU_MAIN_LIBS ${EIGEN3_TARGET})
 endif()
-message(STATUS "OSQP_FOUND: ${OSQP_FOUND}")
-if(OSQP_FOUND)
-    message(STATUS "OSQP_INCLUDE_DIRS: ${OSQP_INCLUDE_DIRS}")
-    message(STATUS "OSQP_LIBRARIES: ${OSQP_LIBRARIES}")
-endif()
-message(STATUS "===========================")
 
-# 添加编译测试
-add_custom_target(test_compile
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target system_test
-    COMMENT "Testing compilation of system_test"
+if(GTest_FOUND)
+    list(APPEND VCU_MAIN_LIBS ${GTEST_LIBRARIES})
+endif()
+
+target_link_libraries(vcu_main ${VCU_MAIN_LIBS})
+
+# 系统测试
+add_executable(system_test
+    tests/system_test.cpp
+    src/can_bus_interface.cpp
+    src/control/braking_controller.cpp
+    src/control/cvt_controller.cpp
+    src/control/energy_manager.cpp
+    src/control/implement_control_manager.cpp
+    src/control/implement_drivers/fertilizer_controller.cpp
+    src/control/implement_drivers/plow_controller.cpp
+    src/control/implement_drivers/seeder_controller.cpp
+    src/control/implement_drivers/sprayer_controller.cpp
+    src/control/steering_controller.cpp
+    src/control/torque_arbiter.cpp
+    src/diagnostic/adaptive_learner.cpp
+    src/diagnostic/data_logger.cpp
+    src/diagnostic/health_monitor.cpp
+    src/execution/actuator_interface.cpp
+    src/execution/fault_handler.cpp
+    src/hardware/watchdog.cpp
+    src/models/battery_model.cpp
+    src/models/engine_model.cpp
+    src/models/motor_model.cpp
+    src/perception/load_detector.cpp
+    src/perception/sensor_fusion.cpp
+    src/prediction/predictive_analytics.cpp
+    src/system_integration.cpp
+    src/utils/tractor_state_calculator.cpp
 )
+
+set(SYSTEM_TEST_LIBS pthread)
+
+if(TARGET ${EIGEN3_TARGET})
+    list(APPEND SYSTEM_TEST_LIBS ${EIGEN3_TARGET})
+endif()
+
+target_link_libraries(system_test ${SYSTEM_TEST_LIBS})
+
+# 设置编译选项
+target_compile_options(vcu_main PRIVATE
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
+    -Wno-unused-variable
+    -Wno-narrowing
+)
+
+target_compile_options(system_test PRIVATE
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
+    -Wno-unused-variable
+    -Wno-narrowing
+)
+
+# 输出配置信息
+message(STATUS "=== VCU Build Configuration ===")
+message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
+message(STATUS "Eigen3 Found: ${EIGEN3_FOUND}")
+message(STATUS "libmpc++ Found: ${LIBMPC_FOUND}")
+if(LIBMPC_FOUND)
+    message(STATUS "libmpc++ will use C++20 features")
+endif()
+message(STATUS "===============================")

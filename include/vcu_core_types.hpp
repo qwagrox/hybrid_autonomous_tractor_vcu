@@ -1,4 +1,4 @@
-// include/vcu_core_types.hpp - 修复前向声明问题的版本
+// include/vcu_core_types.hpp - Patched Version
 #pragma once
 #include <Eigen/Dense>
 #include <vector>
@@ -12,16 +12,16 @@
 
 namespace VCUCore {
 
-// 使用统一的数据类型
+// Using unified data types
 using Vector3d = Eigen::Vector3d;
 using Matrix3d = Eigen::Matrix3d;
 using VectorXd = Eigen::VectorXd;
 using MatrixXd = Eigen::MatrixXd;
 
-// 时间戳类型定义
+// Timestamp type definition
 using Timestamp = uint64_t;
 
-// 枚举类型定义
+// Enum type definitions
 enum class SystemState {
     INITIALIZING,
     IDLE,
@@ -84,7 +84,7 @@ enum class FaultSeverity {
     CRITICAL
 };
 
-// 预测策略枚举
+// Prediction strategy enum
 enum class PredictionStrategy {
     SIMPLE_LINEAR,
     KALMAN_FILTER,
@@ -101,7 +101,7 @@ enum class ChargingMode {
     HYBRID_CHARGING
 };
 
-// 基础结构体定义
+// Basic structure definitions
 struct TractorVehicleState {
     Vector3d position;
     Vector3d velocity;
@@ -137,8 +137,8 @@ struct TractorVehicleState {
     uint32_t workingHours;
     double stabilityMargin;
     double wheelSpeed;
-    
-    // 添加缺失的成员
+
+    // Added missing members
     double centerOfGravityHeight;
     double rolloverRisk;
     double batterySOC;
@@ -149,7 +149,7 @@ struct TractorVehicleState {
     bool isWorking;
     bool isPTOEngaged;
     bool isTransporting;
-    
+
     uint64_t timestamp;
 };
 
@@ -185,12 +185,12 @@ struct SensorData {
     Vector3d imuAngularRate;
     double wheelSpeed;
     std::vector<double> wheelSpeeds;
-    
-    // 发动机相关 - 使用实际代码中的名称
-    double engineRPM;      // 保留这个
-    double engineRpm;      // 添加这个（代码中使用的名称）
+
+    // Engine related - using names from actual code
+    double engineRPM;      // Keep this
+    double engineRpm;      // Add this (name used in code)
     double engineTorque;
-    
+
     double fuelLevel;
     double batteryVoltage;
     double hydraulicPressure;
@@ -199,7 +199,7 @@ struct SensorData {
     uint64_t timestamp;
 };
 
-// EngineData结构体 - 基于实际代码使用的成员
+// EngineData struct - based on members used in actual code
 struct EngineData {
     double rpm;
     double torque;
@@ -209,14 +209,14 @@ struct EngineData {
     double oilPressure;
     double throttlePosition;
     bool isRunning;
-    
-    // 添加实际代码中使用的成员
+
+    // Added members used in actual code
     double actualTorque;
     double percentLoad;
     double speed;
     double fuelRate;
     double boostPressure;
-    
+
     uint64_t timestamp;
 };
 
@@ -262,7 +262,7 @@ struct EnergyState {
     uint64_t timestamp;
 };
 
-// 添加OptimizationResult结构体
+// Added OptimizationResult struct
 struct OptimizationResult {
     double optimalValue;
     std::vector<double> parameters;
@@ -272,7 +272,7 @@ struct OptimizationResult {
     uint64_t timestamp;
 };
 
-// 先定义PowerFlow，然后再定义EnergyOptimization
+// Define PowerFlow first, then EnergyOptimization
 struct PowerFlow {
     double enginePower;
     double motorPower;
@@ -286,7 +286,7 @@ struct PowerFlow {
     uint64_t timestamp;
 };
 
-// 能源管理相关结构体 - 修复前向声明问题
+// Energy management related structs - forward declaration issue fixed
 struct EnergyOptimization {
     double optimalEngineTorque;
     double optimalMotorTorque;
@@ -295,13 +295,13 @@ struct EnergyOptimization {
     double estimatedFuelSaving;
     double computationTime;
     bool isValid;
-    
-    // 现在PowerFlow已经定义了，可以安全使用
+
+    // PowerFlow is now defined, safe to use
     PowerFlow optimalFlow;
     double costSavings;
     double efficiencyGain;
     double batteryLifeImpact;
-    
+
     uint64_t timestamp;
 };
 
@@ -322,16 +322,16 @@ struct EnergyForecast {
     std::vector<double> fuelConsumptionForecast;
     double forecastHorizon;
     double confidence;
-    
-    // 添加缺失的成员
+
+    // Added missing members
     double predictedGeneration;
     double predictedSOC;
     double predictedConsumption;
-    
+
     uint64_t timestamp;
 };
 
-// 电池相关结构体
+// Battery related structs
 struct CellModel {
     double voltage;
     double current;
@@ -396,7 +396,7 @@ struct BatteryState {
     uint64_t timestamp;
 };
 
-// 负载检测相关结构体
+// Load detection related structs
 struct LoadSignature {
     double drawbarForce;
     double motorTorque;
@@ -426,7 +426,7 @@ struct LoadTrend {
     uint64_t timestamp;
 };
 
-// 控制命令结构体
+// Control command struct
 struct ControlCommands {
     double torqueRequest;
     double steeringAngleRequest;
@@ -440,7 +440,7 @@ struct ControlCommands {
     uint64_t timestamp;
 };
 
-// 故障诊断相关结构体
+// Fault diagnosis related structs
 struct FaultDiagnosis {
     uint32_t faultCode;
     std::string description;
@@ -454,7 +454,7 @@ struct FaultDiagnosis {
     std::vector<std::string> recoverySteps;
 };
 
-// 系统健康相关结构体
+// System health related structs
 struct SystemHealthStatus {
     double overallHealth;
     double batteryLevel;
@@ -491,7 +491,7 @@ struct SystemParameters {
     uint64_t lastCalibrationTime;
 };
 
-// CVT制造商参数结构体 - 统一定义，避免重复
+// CVT manufacturer parameters struct - unified definition to avoid repetition
 struct CVTManufacturerParams {
     double minRatio;
     double maxRatio;
@@ -499,7 +499,7 @@ struct CVTManufacturerParams {
     std::string name;
 };
 
-// 扭矩分配结果结构体
+// Torque distribution result struct
 struct TorqueDistribution {
     double engineTorque;
     double motorTorque;
@@ -508,7 +508,7 @@ struct TorqueDistribution {
     uint64_t timestamp;
 };
 
-// 故障诊断相关结构体已移到前面
+// Fault diagnosis related structs moved to the front
 
 struct FaultTrend {
     std::string component;
@@ -557,7 +557,7 @@ struct DiagnosticResult {
     uint64_t timestamp;
 };
 
-// 动力学相关结构体 - 统一定义，避免重复
+// Dynamics related structs - unified definition to avoid repetition
 struct DynamicsStatistics {
     float maxAcceleration;
     float maxDeceleration;
@@ -588,7 +588,7 @@ struct StabilityAssessment {
     std::vector<std::string> stabilityIssues;
 };
 
-// 预测性能结构体 - 统一定义，避免重复
+// Prediction performance struct - unified definition to avoid repetition
 struct PredictionPerformance {
     PredictionStrategy strategy;
     double averageError;
@@ -599,7 +599,7 @@ struct PredictionPerformance {
     Timestamp lastUpdate;
 };
 
-// 学习相关结构体 - 为adaptive_learner添加
+// Learning related structs - for adaptive_learner
 struct LearningExperience {
     SensorData sensorData;
     PerceptionData perceptionData;
@@ -697,7 +697,7 @@ struct ActuatorDiagnostic {
     std::map<std::string, double> diagnosticData;
 };
 
-// 故障统计结构体
+// Fault statistics struct
 struct FaultStatistics {
     uint32_t totalFaults;
     uint32_t activeFaults;
@@ -708,7 +708,7 @@ struct FaultStatistics {
     uint64_t timestamp;
 };
 
-// 安全违规相关枚举和结构体
+// Safety violation related enums and structs
 enum class ViolationSeverity {
     LOW = 1,
     MEDIUM = 2,
@@ -723,7 +723,10 @@ enum class ViolationType {
     PRESSURE_LIMIT_EXCEEDED,
     STABILITY_RISK,
     COLLISION_IMMINENT,
-    EMERGENCY_STOP_REQUIRED
+    EMERGENCY_STOP_REQUIRED,
+    WHEEL_SLIP, // Added
+    RPM_OVERLIMIT, // Added
+    TORQUE_RATE_OVERLIMIT // Added
 };
 
 struct SafetyViolation {
@@ -733,13 +736,17 @@ struct SafetyViolation {
     std::string component;
     double value;
     double limit;
+    double currentValue; // Added
     uint64_t timestamp;
     bool isResolved;
 };
 
-// 安全检查相关类型
+// Safety check result enums and structs
 enum class SafetyCheckStatus {
-    SAFE, WARNING, CRITICAL, EMERGENCY
+    SAFE,
+    WARNING,
+    CRITICAL,
+    EMERGENCY
 };
 
 struct SafetyCheckResult {
@@ -748,13 +755,24 @@ struct SafetyCheckResult {
     std::vector<SafetyViolation> violations;
     double riskScore;
     bool requiresAction;
+    bool isSafe; // Added
     std::string recommendedAction;
     uint64_t timestamp;
+    // For detailed checks
+    SafetyCheckResult* torqueCheck;
+    SafetyCheckResult* speedCheck;
+    SafetyCheckResult* temperatureCheck;
+    SafetyCheckResult* stabilityCheck;
+    bool overallSafe;
 };
 
-// 风险评估类型
+
+// Risk assessment related structs
 enum class RiskLevel {
-    LOW = 1, MEDIUM = 2, HIGH = 3, CRITICAL = 4
+    LOW = 1,
+    MEDIUM = 2,
+    HIGH = 3,
+    CRITICAL = 4
 };
 
 struct RiskAssessment {
@@ -766,13 +784,22 @@ struct RiskAssessment {
     uint64_t timestamp;
 };
 
-// 紧急响应类型
+// Emergency response related enums and structs
 enum class EmergencyLevel {
-    NONE = 0, LOW = 1, MEDIUM = 2, HIGH = 3, CRITICAL = 4
+    NONE = 0,
+    LOW = 1,
+    MEDIUM = 2,
+    HIGH = 3,
+    CRITICAL = 4
 };
 
 enum class EmergencyAction {
-    NONE, REDUCE_POWER, STOP_VEHICLE, ENGAGE_BRAKES, SHUTDOWN_SYSTEM, ALERT_OPERATOR
+    NONE,
+    REDUCE_POWER,
+    STOP_VEHICLE,
+    ENGAGE_BRAKES,
+    SHUTDOWN_SYSTEM,
+    ALERT_OPERATOR
 };
 
 struct EmergencyResponse {
@@ -785,7 +812,7 @@ struct EmergencyResponse {
     uint32_t duration;
 };
 
-// 安全状态类型
+// Safety status struct
 struct SafetyStatus {
     SafetyCheckStatus overallStatus;
     double safetyScore;
@@ -799,8 +826,7 @@ struct SafetyStatus {
     uint64_t timestamp;
 };
 
-
-// GPIO引脚常量定义
+// GPIO pin constant definitions
 constexpr uint32_t GPIO_PIN_IMPLEMENT_LIFT = 12;
 constexpr uint32_t GPIO_PIN_IMPLEMENT_LOWER = 13;
 constexpr uint32_t GPIO_PIN_PTO_ENGAGE = 14;
@@ -809,3 +835,4 @@ constexpr uint32_t GPIO_PIN_HYDRAULIC_ENABLE = 16;
 constexpr uint32_t GPIO_PIN_HYDRAULIC_DISABLE = 17;
 
 } // namespace VCUCore
+

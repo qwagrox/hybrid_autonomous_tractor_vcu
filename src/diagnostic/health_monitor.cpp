@@ -1,5 +1,5 @@
 // src/diagnostic/health_monitor.cpp - 修复版本的关键部分
-#include "diagnostic/health_monitor.hpp"
+#include "health_monitor.hpp"
 #include <algorithm>
 #include <numeric>
 #include <chrono>
@@ -31,7 +31,7 @@ SystemHealthStatus HealthMonitor::checkSystemHealth() {
     
     // 获取各子系统状态
     if (batteryModel_) {
-        auto batteryState = batteryModel_->getCurrentState();
+        auto batteryState = batteryModel_->getBatteryState();
         status.batteryLevel = batteryState.stateOfCharge;
     } else {
         status.batteryLevel = 0.8; // 默认值
@@ -56,18 +56,7 @@ SystemHealthStatus HealthMonitor::checkSystemHealth() {
         }
         for (const auto& fault : health.activeFaults) {
             if (fault.isActive) {
-                FaultDiagnosis faultDiag;
-                faultDiag.faultCode = fault.faultCode;
-                faultDiag.description = component + ": " + fault.description;
-                faultDiag.severity = fault.severity;
-                faultDiag.component = component;
-                faultDiag.timestamp = fault.timestamp;
-                faultDiag.duration = 0;
-                faultDiag.isActive = fault.isActive;
-                faultDiag.isRecoverable = true;
-                faultDiag.recommendedAction = fault.recommendedAction;
-                faultDiag.recoverySteps = {"Check component", "Reset if needed"};
-                status.activeFaults.push_back(faultDiag);
+                status.activeFaults.push_back(component + ": " + fault.description);
             }
         }
     }
@@ -294,7 +283,7 @@ std::string HealthMonitor::generateMaintenanceReport() const {
         report += "Component: " + item.component + "\n";
         report += "  Description: " + item.description + "\n";
         report += "  Priority: " + std::to_string(item.priority) + "\n";
-        report += "  Overdue: " + std::string(item.isOverdue ? "Yes" : "No") + "\n\n";
+        report += "  Overdue: " + (item.isOverdue ? "Yes" : "No") + "\n\n";
     }
     
     return report;
