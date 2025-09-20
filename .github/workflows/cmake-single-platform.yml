@@ -77,48 +77,7 @@ jobs:
           git \
           unzip
 
-    - name: Install compatible Eigen3 version (3.2.10)
-      run: |
-        echo "Installing compatible Eigen3 version 3.2.10..."
-        
-        # 检查缓存
-        if [ -d "/tmp/eigen-3.2.10" ] && [ -f "/usr/local/include/eigen3/Eigen/Dense" ]; then
-          echo "✓ Eigen3 3.2.10 found in cache"
-        else
-          echo "Installing Eigen3 3.2.10 from source..."
-          
-          # 移除系统安装的Eigen（如果存在）
-          sudo apt-get remove -y libeigen3-dev || true
-          
-          # 下载并安装Eigen 3.2.10（与ACADO兼容的版本）
-          cd /tmp
-          if [ ! -d "eigen-3.2.10" ]; then
-            wget https://gitlab.com/libeigen/eigen/-/archive/3.2.10/eigen-3.2.10.tar.gz
-            tar -xzf eigen-3.2.10.tar.gz
-          fi
-          cd eigen-3.2.10
-          
-          mkdir -p build && cd build
-          cmake .. \
-            -DCMAKE_INSTALL_PREFIX=/usr/local \
-            -DCMAKE_BUILD_TYPE=Release
-          sudo make install
-          
-          # 创建符号链接到标准位置
-          sudo ln -sf /usr/local/include/eigen3 /usr/include/eigen3
-        fi
-        
-        # 验证安装
-        if [ -f "/usr/local/include/eigen3/Eigen/Dense" ]; then
-          echo "✓ Eigen3 3.2.10 installation verified"
-          echo "Eigen3 version info:"
-          grep -r "EIGEN_WORLD_VERSION\|EIGEN_MAJOR_VERSION\|EIGEN_MINOR_VERSION" /usr/local/include/eigen3/Eigen/src/Core/util/Macros.h || true
-        else
-          echo "✗ Eigen3 installation failed"
-          exit 1
-        fi
-
-    - name: Install ACADO Toolkit (compatible with Eigen 3.2.10)
+    - name: Install ACADO Toolkit
       run: |
         echo "Installing ACADO Toolkit..."
         
@@ -150,15 +109,13 @@ jobs:
           cmake /tmp/acado \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=/usr/local \
-            -DWITH_EXAMPLES=OFF \
-            -DWITH_TESTING=OFF \
-            -DWITH_QPOASES=ON \
-            -DWITH_QPDUNES=OFF \
+            -DACADOS_EXAMPLES=OFF \
+            -DACADOS_UNIT_TESTS=OFF \
+            -DACADOS_WITH_QPOASES=ON \
             -DEIGEN3_INCLUDE_DIR=/usr/local/include/eigen3
           
           # 编译和安装（限制并行数避免内存不足）
-          make -j2
-          sudo make install
+          sudo make install -j4
           
           # 更新库路径
           sudo ldconfig
@@ -172,24 +129,6 @@ jobs:
           echo "⚠️ ACADO Toolkit installation failed, creating minimal header..."
           sudo mkdir -p /usr/local/include
           sudo tee /usr/local/include/acado_toolkit.hpp > /dev/null << 'EOF'
-        #ifndef ACADO_TOOLKIT_HPP
-        #define ACADO_TOOLKIT_HPP
-
-        // Minimal ACADO header for compilation compatibility
-        namespace ACADO {
-            class OptimizationAlgorithm {};
-            class OCP {};
-            class DifferentialState {};
-            class Control {};
-            class Parameter {};
-            class DifferentialEquation {};
-            class Function {};
-        }
-
-        #endif // ACADO_TOOLKIT_HPP
-        EOF
-          echo "✓ Minimal ACADO header created"
-        fi
 
     - name: Install other dependencies
       run: |
