@@ -1,5 +1,5 @@
 // src/diagnostic/health_monitor.cpp - 修复版本的关键部分
-#include "health_monitor.hpp"
+#include "diagnostic/health_monitor.hpp"
 #include <algorithm>
 #include <numeric>
 #include <chrono>
