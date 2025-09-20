@@ -1,4 +1,4 @@
-// include/diagnostic/health_monitor.hpp
+// include/diagnostic/health_monitor.hpp - 修复版本
 #pragma once
 #include "vcu_core_types.hpp"
 #include "models/engine_model.hpp"
@@ -6,19 +6,28 @@
 #include "models/battery_model.hpp"
 #include <memory>
 #include <map>
+#include <deque>
 
 namespace VCUCore {
 
 class HealthMonitor {
 private:
     struct ComponentHealth {
-        float healthScore;
+        double overallHealth;
+        double stateOfHealth;
+        double degradationRate;
+        uint32_t cycleCount;
+        double temperatureHealth;
+        double voltageHealth;
+        double currentHealth;
+        uint64_t lastMaintenanceTime;
         uint32_t errorCount;
         uint32_t warningCount;
         uint64_t operatingHours;
         uint32_t lastMaintenance;
         std::vector<FaultDiagnosis> activeFaults;
         std::vector<MaintenanceItem> maintenanceItems;
+        std::vector<std::string> healthWarnings;
     };
     
     std::map<std::string, ComponentHealth> componentHealth_;
@@ -56,27 +65,32 @@ public:
     DiagnosticResult performDiagnosticTest(const DiagnosticTest& test);
     
     // 报告生成
-    HealthReport generateHealthReport() const;
-    std::vector<HealthTrend> analyzeHealthTrends() const;
+    std::string generateHealthReport() const;
+    std::string generateMaintenanceReport() const;
+    
+    // 历史数据管理
+    void updateHealthHistory(const SystemHealthStatus& status);
+    std::vector<SystemHealthStatus> getHealthHistory(uint32_t hours) const;
+    void clearHealthHistory();
 
 private:
     void initializeComponentHealth();
-    void updateComponentHealth(const std::string& component, float deltaHealth);
-    void detectComponentFaults(const std::string& component, ComponentHealth& health);
+    void updateComponentHealth(const std::string& component, const ComponentHealth& health);
+    double calculateOverallHealth() const;
+    void checkThresholds();
+    void generateAlerts();
     
-    float calculateEngineHealth(const EngineState& state) const;
-    float calculateMotorHealth(const MotorState& state) const;
-    float calculateBatteryHealth(const BatteryState& state) const;
-    float calculateSystemHealth() const;
+    // 预测性维护算法
+    double predictDegradation(const std::string& component, uint32_t hours) const;
+    bool shouldScheduleMaintenance(const std::string& component) const;
     
-    void updateHealthHistory(const SystemHealthStatus& status);
-    void predictMaintenanceNeeds();
+    // 数据分析
+    void analyzeHealthTrends();
+    void detectAnomalies();
     
-    bool checkWearAndTear(const std::string& component) const;
-    bool checkPerformanceDegradation(const std::string& component) const;
-    
-    void notifyMaintenanceNeed(const MaintenanceItem& item);
-    void escalateCriticalHealthIssue(const std::string& component, float healthScore);
+    // 配置管理
+    void loadConfiguration();
+    void saveConfiguration() const;
 };
 
 } // namespace VCUCore

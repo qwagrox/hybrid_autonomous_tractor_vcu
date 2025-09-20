@@ -1,4 +1,4 @@
-// include/vcu_core_types.hpp - C++20兼容性补丁
+// include/vcu_core_types.hpp - 完全修复版本
 #pragma once
 #include <Eigen/Dense>
 #include <vector>
@@ -7,6 +7,7 @@
 #include <deque>
 #include <chrono>
 #include <atomic>
+#include <functional>
 
 namespace VCUCore {
 
@@ -52,6 +53,18 @@ enum class TrendDirection {
     DECREASING,
     STABLE,
     OSCILLATING
+};
+
+// 添加缺失的CVTManufacturer枚举
+enum class CVTManufacturer {
+    GENERIC,
+    JOHN_DEERE,
+    CASE_IH,
+    NEW_HOLLAND,
+    FENDT,
+    CLAAS,
+    MASSEY_FERGUSON,
+    KUBOTA
 };
 
 // 基础结构体定义
@@ -133,6 +146,64 @@ struct SensorData {
     double hydraulicPressure;
     double oilTemperature;
     double coolantTemperature;
+    uint64_t timestamp;
+};
+
+// 添加缺失的EngineData结构体
+struct EngineData {
+    double rpm;
+    double torque;
+    double power;
+    double fuelConsumption;
+    double temperature;
+    double oilPressure;
+    double throttlePosition;
+    bool isRunning;
+    uint64_t timestamp;
+};
+
+// 添加缺失的EngineState结构体
+struct EngineState {
+    double rpm;
+    double torque;
+    double power;
+    double fuelConsumption;
+    double temperature;
+    double oilPressure;
+    double throttlePosition;
+    double efficiency;
+    bool isRunning;
+    bool isOverheating;
+    bool hasLowOilPressure;
+    uint64_t timestamp;
+};
+
+// 添加缺失的MotorState结构体
+struct MotorState {
+    double rpm;
+    double torque;
+    double power;
+    double current;
+    double voltage;
+    double temperature;
+    double efficiency;
+    bool isRunning;
+    bool isOverheating;
+    bool hasOvercurrent;
+    uint64_t timestamp;
+};
+
+// 添加缺失的EnergyState结构体
+struct EnergyState {
+    double totalPower;
+    double enginePower;
+    double motorPower;
+    double batteryPower;
+    double hydraulicPower;
+    double auxiliaryPower;
+    double efficiency;
+    double fuelConsumption;
+    double batteryLevel;
     uint64_t timestamp;
 };
 
@@ -231,7 +302,7 @@ struct LoadTrend {
     uint64_t timestamp;
 };
 
-// 控制命令结构体
+// 控制命令结构体 - 添加缺失的成员
 struct ControlCommands {
     double torqueRequest;
     double steeringAngleRequest;
@@ -239,7 +310,25 @@ struct ControlCommands {
     double cvtRatioRequest;
     double ptoSpeedRequest;
     double hydraulicPressureRequest;
+    
+    // 添加缺失的成员
+    double engineTorqueRequest;   // 发动机扭矩请求
+    double motorTorqueRequest;    // 电机扭矩请求
+    
     bool emergencyStop;
+    uint64_t timestamp;
+};
+
+// 系统健康相关结构体
+struct SystemHealthStatus {
+    double overallHealth;
+    double batteryLevel;
+    double engineLoad;
+    double fuelLevel;
+    double hydraulicPressure;
+    bool isHealthy;  // 添加isHealthy成员
+    std::vector<std::string> activeWarnings;
+    std::vector<std::string> activeFaults;
     uint64_t timestamp;
 };
 
@@ -304,6 +393,73 @@ struct PredictionPerformance {
     double recall;
     double f1Score;
     double computationTime;
+    uint64_t timestamp;
+};
+
+// CVT制造商参数结构体
+struct CVTManufacturerParams {
+    double minRatio;
+    double maxRatio;
+    double defaultRatio;
+    std::string name;
+};
+
+// 扭矩分配结果结构体
+struct TorqueDistribution {
+    double engineTorque;
+    double motorTorque;
+    double totalTorque;
+    double efficiency;
+    uint64_t timestamp;
+};
+
+// 故障诊断相关结构体
+struct FaultDiagnosis {
+    uint32_t faultCode;
+    std::string description;
+    double severity;
+    std::string component;
+    uint64_t timestamp;
+    bool isActive;
+    std::string recommendedAction;
+};
+
+struct MaintenanceItem {
+    std::string component;
+    std::string description;
+    uint64_t dueTime;
+    double priority;
+    bool isOverdue;
+};
+
+struct MaintenanceRecord {
+    std::string component;
+    std::string action;
+    uint64_t timestamp;
+    std::string technician;
+    std::string notes;
+};
+
+struct HealthForecast {
+    std::string component;
+    double predictedHealth;
+    uint64_t forecastTime;
+    double confidence;
+    std::string recommendations;
+};
+
+struct DiagnosticTest {
+    std::string testName;
+    std::string component;
+    std::function<bool()> testFunction;
+    double expectedDuration;
+};
+
+struct DiagnosticResult {
+    std::string testName;
+    bool passed;
+    double actualDuration;
+    std::string details;
     uint64_t timestamp;
 };
 
