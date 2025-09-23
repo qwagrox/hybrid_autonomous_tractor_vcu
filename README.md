@@ -10,7 +10,7 @@
 ![Issues Tracking Badge](https://img.shields.io/badge/issue_track-github-blue?style=flat&label=Issue%20Tracking)
 [![Contributors](https://img.shields.io/github/contributors/qwagrox/hybrid_autonomous_tractor_vcu
 )](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/graphs/contributors)
-[![GitHub Build Badge](https://github.com/apache/nuttx/workflows/Build/badge.svg)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/actions/workflows/cmake-single-platform.yml)
+[![CI](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/actions/workflows/cmake-single-platform.yml)
 [![Documentation Badge](https://github.com/apache/nuttx/workflows/Build%20Documentation/badge.svg)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/docs)
 
 ## 1. 项目概述
