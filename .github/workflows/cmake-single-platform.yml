@@ -3,8 +3,30 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '*.txt'
+      - '*.pdf'
+      - '*.png'
+      - '*.jpg'
+      - '*.jpeg'
+      - '*.gif'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '*.txt'
+      - '*.pdf'
+      - '*.png'
+      - '*.jpg'
+      - '*.jpeg'
+      - '*.gif'
+      - 'LICENSE'
+      - '.gitignore'
 
 jobs:
   build-and-test:
@@ -82,14 +104,14 @@ jobs:
     - name: Run cppcheck
       run: |
         cppcheck --enable=warning,style,performance,portability \
-         --std=c++17 \
-         --suppress=missingIncludeSystem \
-         --suppress=missingInclude \
-         --suppress=unusedFunction \
-         --suppress=unmatchedSuppression \
-         --error-exitcode=1 --inline-suppr \
-         -I include/ \
-         src/
+                 --std=c++17 \
+                 --suppress=missingIncludeSystem \
+                 --suppress=missingInclude \
+                 --suppress=unusedFunction \
+                 --suppress=unmatchedSuppression \
+                 --error-exitcode=1 --inline-suppr \
+                 -I include/ \
+                 src/
     
     - name: Configure CMake for analysis
       run: |
