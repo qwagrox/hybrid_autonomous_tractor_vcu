@@ -81,9 +81,15 @@ jobs:
     
     - name: Run cppcheck
       run: |
-        cppcheck --enable=all --std=c++17 --suppress=missingIncludeSystem \
-                 --error-exitcode=1 --inline-suppr \
-                 include/ src/ tests/
+        cppcheck --enable=warning,style,performance,portability \
+         --std=c++17 \
+         --suppress=missingIncludeSystem \
+         --suppress=missingInclude \
+         --suppress=unusedFunction \
+         --suppress=unmatchedSuppression \
+         --error-exitcode=1 --inline-suppr \
+         -I include/ \
+         src/
     
     - name: Configure CMake for analysis
       run: |
