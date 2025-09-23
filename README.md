@@ -4,6 +4,15 @@
 - **作者**: tangyong@stmail.ujs.edu.cn ， 目前就读于江苏大学农机控制理论与工程博士
 - **日期**: 2025/09/23
 
+![POSIX Badge](https://img.shields.io/badge/POSIX-Compliant-brightgreen?style=flat&label=POSIX)
+[![License](https://img.shields.io/badge/https://img.shields.io/badge/MIT-License-blue
+)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/LICENSE)
+![Issues Tracking Badge](https://img.shields.io/badge/issue_track-github-blue?style=flat&label=Issue%20Tracking)
+[![Contributors](https://img.shields.io/github/contributors/qwagrox/hybrid_autonomous_tractor_vcu
+)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/graphs/contributors)
+[![GitHub Build Badge](https://github.com/apache/nuttx/workflows/Build/badge.svg)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/actions/workflows/cmake-single-platform.yml)
+[![Documentation Badge](https://github.com/apache/nuttx/workflows/Build%20Documentation/badge.svg)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/tree/main/docs)
+
 ## 1. 项目概述
 
 `hybrid_autonomous_tractor_vcu` 是一个为油电混合动力自主作业拖拉机设计的整车控制器（Vehicle Control Unit, VCU）软件项目。本项目旨在提供一个符合工业级标准的、模块化的、可扩展的软件平台，用于实现自主作业（无人）拖拉机的自主精准作业决策和高效的能量管理。
