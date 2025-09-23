@@ -21,9 +21,20 @@ SocketCanInterface::SocketCanInterface()
 }
 
 SocketCanInterface::~SocketCanInterface() {
-    // This is safe because we're in the destructor of the final class
-    // cppcheck-suppress virtualCallInConstructor
-    shutdown();
+    // Directly implement cleanup without calling virtual functions
+    // to avoid virtual function call in destructor
+    if (is_initialized_.load()) {
+        // Stop receiving (direct implementation)
+        is_receiving_.store(false);
+        
+        // Close socket if open
+        if (socket_fd_ >= 0) {
+            close(socket_fd_);
+            socket_fd_ = -1;
+        }
+        
+        is_initialized_.store(false);
+    }
 }
 
 CanResult SocketCanInterface::initialize(const std::string& interface_name, uint32_t bitrate) {
