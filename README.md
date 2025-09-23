@@ -3,7 +3,7 @@
 
 - **版本**: 0.1
 - **作者**: tangyong@stmail.ujs.edu.cn ， 目前就读于江苏大学农机控制理论与工程博士
-- **日期**: 2025/09/23
+- **日期**: 2025/09/24
 
 ![POSIX Badge](https://img.shields.io/badge/POSIX-Compliant-brightgreen?style=flat&label=POSIX)
 [![License](https://img.shields.io/badge/MIT-License-blue)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/LICENSE)
