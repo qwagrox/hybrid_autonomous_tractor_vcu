@@ -21,12 +21,17 @@ include_directories(include)
 # Find required packages
 find_package(GTest REQUIRED)
 
-# CVT Controller Library
-add_library(cvt_controller
+# VCU Controller Library
+add_library(vcu_controller
     src/cvt/cvt_controller.cpp
+    src/can/can_interface.cpp
+    src/can/j1939_protocol.cpp
+    src/can/socketcan_interface.cpp
+    src/sensors/sensor_data_manager.cpp
+    src/prediction/load_predictor.cpp
 )
 
-target_include_directories(cvt_controller PUBLIC
+target_include_directories(vcu_controller PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
@@ -34,23 +39,64 @@ target_include_directories(cvt_controller PUBLIC
 # Enable testing
 enable_testing()
 
-# Test executable
+# CVT Tests
 add_executable(cvt_tests
     tests/test_main.cpp
     tests/cvt/test_cvt_controller.cpp
 )
 
 target_link_libraries(cvt_tests
-    cvt_controller
+    vcu_controller
     GTest::gtest
     GTest::gtest_main
 )
 
-# Add test
+# CAN Tests
+add_executable(can_tests
+    tests/test_main.cpp
+    tests/can/test_can_frame.cpp
+    tests/can/test_j1939_protocol.cpp
+    tests/can/test_can_interface.cpp
+)
+
+target_link_libraries(can_tests
+    vcu_controller
+    GTest::gtest
+    GTest::gtest_main
+)
+
+# Sensor Tests
+add_executable(sensor_tests
+    tests/test_main.cpp
+    tests/sensors/test_sensor_simple.cpp
+)
+
+target_link_libraries(sensor_tests
+    vcu_controller
+    GTest::gtest
+    GTest::gtest_main
+)
+
+# Prediction Tests
+add_executable(prediction_tests
+    tests/test_main.cpp
+    tests/prediction/test_load_predictor.cpp
+)
+
+target_link_libraries(prediction_tests
+    vcu_controller
+    GTest::gtest
+    GTest::gtest_main
+)
+
+# Add tests
 add_test(NAME cvt_controller_tests COMMAND cvt_tests)
+add_test(NAME can_module_tests COMMAND can_tests)
+add_test(NAME sensor_module_tests COMMAND sensor_tests)
+add_test(NAME prediction_module_tests COMMAND prediction_tests)
 
 # Installation
-install(TARGETS cvt_controller
+install(TARGETS vcu_controller
     EXPORT vcu_controller_targets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
