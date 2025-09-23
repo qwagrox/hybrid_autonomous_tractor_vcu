@@ -5,8 +5,7 @@
 - **日期**: 2025/09/23
 
 ![POSIX Badge](https://img.shields.io/badge/POSIX-Compliant-brightgreen?style=flat&label=POSIX)
-[![License](https://img.shields.io/badge/https://img.shields.io/badge/MIT-License-blue
-)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/MIT-License-blue)](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/blob/main/LICENSE)
 ![Issues Tracking Badge](https://img.shields.io/badge/issue_track-github-blue?style=flat&label=Issue%20Tracking)
 [![Contributors](https://img.shields.io/github/contributors/qwagrox/hybrid_autonomous_tractor_vcu
 )](https://github.com/qwagrox/hybrid_autonomous_tractor_vcu/graphs/contributors)
