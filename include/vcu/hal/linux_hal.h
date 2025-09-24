@@ -1,3 +1,5 @@
+// Copyright 2025 Manus AI
+
 #ifndef VCU_HAL_LINUX_HAL_H_
 #define VCU_HAL_LINUX_HAL_H_
 

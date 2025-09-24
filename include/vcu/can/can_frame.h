@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <array>
 #include <string>
+#include <cstring>
+#include <cstddef>
 
 namespace vcu {
 namespace can {
@@ -23,6 +25,39 @@ struct CanFrame {
     bool is_extended = false;               ///< True if the frame uses an extended 29-bit ID
     bool is_error = false;                  ///< True if the frame is an error frame
     bool is_rtr = false;                    ///< True if the frame is a Remote Transmission Request
+
+    /**
+     * @brief Default constructor
+     */
+    CanFrame() = default;
+
+    /**
+     * @brief Constructor with ID, data, and DLC
+     */
+    CanFrame(uint32_t frame_id, const uint8_t* frame_data, uint8_t frame_dlc)
+        : id(frame_id), dlc(frame_dlc) {
+        if (frame_dlc > 8) {
+            dlc = 8;
+        }
+        if (frame_data && dlc > 0) {
+            std::memcpy(data.data(), frame_data, dlc);
+        }
+    }
+
+    /**
+     * @brief Get CAN ID
+     */
+    uint32_t get_id() const { return id; }
+
+    /**
+     * @brief Get DLC
+     */
+    uint8_t get_dlc() const { return dlc; }
+
+    /**
+     * @brief Get data pointer
+     */
+    const uint8_t* get_data() const { return data.data(); }
 
     /**
      * @brief Provides a string representation of the CAN frame for logging.

@@ -1,3 +1,5 @@
+// Copyright 2025 Manus AI
+
 #include <gtest/gtest.h>
 #include <fstream>
 #include <cstdio>

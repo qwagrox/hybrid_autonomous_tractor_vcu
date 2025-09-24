@@ -1,3 +1,5 @@
+// Copyright 2025 Manus AI
+
 #include "vcu/hal/linux_hal.h"
 #include "vcu/can/can_interface.h"
 #include <fstream>

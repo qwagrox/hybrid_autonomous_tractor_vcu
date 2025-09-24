@@ -1,3 +1,5 @@
+// Copyright 2025 Manus AI
+
 #include "vcu/config/json_config_manager.h"
 #include <fstream>
 #include <sstream>

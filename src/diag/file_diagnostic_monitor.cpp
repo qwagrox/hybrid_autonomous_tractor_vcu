@@ -1,3 +1,5 @@
+// Copyright 2025 Manus AI
+
 #include "vcu/diag/file_diagnostic_monitor.h"
 #include <chrono>
 #include <iomanip>

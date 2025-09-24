@@ -27,7 +27,9 @@ enum class CanResult {
     ERROR_SEND,         ///< Failed to send CAN frame
     ERROR_RECEIVE,      ///< Failed to receive CAN frame
     ERROR_TIMEOUT,      ///< Operation timed out
-    ERROR_INVALID_PARAM ///< Invalid parameter provided
+    ERROR_INVALID_PARAM, ///< Invalid parameter provided
+    ERROR_NOT_INITIALIZED, ///< Interface not initialized
+    ERROR_NOT_SUPPORTED   ///< Operation not supported on this platform
 };
 
 /**
