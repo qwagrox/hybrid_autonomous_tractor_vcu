@@ -5,7 +5,6 @@
 #include <thread>
 #include <atomic>
 
-#include "vcu/ad_interface/ad_interface.h"
 #include "vcu/config/json_config_manager.h"
 #include "vcu/diag/file_diagnostic_monitor.h"
 #include "vcu/hal/linux_hal.h"
@@ -48,7 +47,7 @@ private:
     std::shared_ptr<config::JsonConfigManager> config_manager_;
     std::shared_ptr<diag::FileDiagnosticMonitor> diag_monitor_;
     std::shared_ptr<hal::LinuxHal> hal_;
-    std::shared_ptr<ad_interface::AdInterface> ad_interface_;
+    //std::shared_ptr<ad_interface::AdInterface> ad_interface_;
 
     // Control and Data Modules
     std::shared_ptr<can::ICanInterface> can_interface_;
