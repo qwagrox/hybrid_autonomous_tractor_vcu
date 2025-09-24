@@ -1,5 +1,4 @@
 #include "vcu/core/vcu_service.h"
-#include "vcu/ad_interface/ros2_ad_interface.h"
 #include <chrono>
 #include <thread>
 
@@ -72,12 +71,12 @@ bool VcuService::initialize(const std::string& config_path) {
         // CVT controller doesn't need explicit initialization
 
         // Initialize autonomous driving interface
-        ad_interface_ = std::make_shared<ad_interface::Ros2AdInterface>();
-        if (!ad_interface_->initialize()) {
-            diag_monitor_->log(diag::LogLevel::ERROR, "AD interface initialization failed");
-            state_ = VcuState::FAULT;
-            return false;
-        }
+        //ad_interface_ = std::make_shared<ad_interface::Ros2AdInterface>();
+        //if (!ad_interface_->initialize()) {
+        //    diag_monitor_->log(diag::LogLevel::ERROR, "AD interface initialization failed");
+        //    state_ = VcuState::FAULT;
+        //    return false;
+        //}
 
         diag_monitor_->log(diag::LogLevel::INFO, "VCU Service initialized successfully");
         state_ = VcuState::RUNNING;
@@ -114,9 +113,9 @@ void VcuService::shutdown() {
     }
 
     // Shutdown modules in reverse order
-    if (ad_interface_) {
-        ad_interface_->shutdown();
-    }
+    //if (ad_interface_) {
+    //    ad_interface_->shutdown();
+    //}
     
     // CVT controller doesn't need explicit shutdown
     
@@ -177,15 +176,15 @@ void VcuService::main_loop() {
 }
 
 void VcuService::process_ad_commands() {
-    ad_interface::AdCommand cmd;
-    if (ad_interface_->get_command(cmd)) {
+    //ad_interface::AdCommand cmd;
+    //if (ad_interface_->get_command(cmd)) {
         // Set drive mode
-        cvt_controller_->set_drive_mode(cmd.target_drive_mode);
+    //    cvt_controller_->set_drive_mode(cmd.target_drive_mode);
         
         // Update target parameters based on command
         // This is where the integration between AD and VCU happens
-        diag_monitor_->log(diag::LogLevel::INFO, "Processing AD command");
-    }
+    //    diag_monitor_->log(diag::LogLevel::INFO, "Processing AD command");
+    //}
 }
 
 void VcuService::update_vehicle_state() {
@@ -197,15 +196,15 @@ void VcuService::update_vehicle_state() {
         common::CvtState cvt_state = cvt_controller_->get_current_state();
         
         // Prepare vehicle state for AD system
-        ad_interface::VehicleState vehicle_state;
-        vehicle_state.current_drive_mode = common::DriveMode::MANUAL; // Default for now
-        vehicle_state.current_speed_mps = perception_data.vehicle_speed_mps;
-        vehicle_state.current_engine_rpm = perception_data.engine_speed_rpm;
-        vehicle_state.current_load_percent = perception_data.engine_load_percent;
-        vehicle_state.current_transmission_ratio = perception_data.current_transmission_ratio;
+        //ad_interface::VehicleState vehicle_state;
+        //vehicle_state.current_drive_mode = common::DriveMode::MANUAL; // Default for now
+        //vehicle_state.current_speed_mps = perception_data.vehicle_speed_mps;
+        //vehicle_state.current_engine_rpm = perception_data.engine_speed_rpm;
+        //vehicle_state.current_load_percent = perception_data.engine_load_percent;
+        //vehicle_state.current_transmission_ratio = perception_data.current_transmission_ratio;
         
         // Send state to AD system
-        ad_interface_->publish_state(vehicle_state);
+        //ad_interface_->publish_state(vehicle_state);
     }
 }
 
