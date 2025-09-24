@@ -1,65 +1,73 @@
 #include "nuttx_thread.h"
 #include <pthread.h>
-#include <cstring>
 
-// 线程包装器结构体
+namespace vcu {
+namespace platform {
+namespace nuttx {
+
 struct ThreadWrapper {
     std::function<void()> func;
     
-    ThreadWrapper(std::function<void()> f) : func(f) {}
+    // 修复：添加explicit关键字防止隐式转换
+    explicit ThreadWrapper(std::function<void()> f) : func(f) {}
 };
 
-// C风格的线程入口函数
-static void* thread_entry(void* arg) {
-    ThreadWrapper* wrapper = static_cast<ThreadWrapper*>(arg);
-    if (wrapper) {
-        wrapper->func();
-        delete wrapper;
-    }
+static void* thread_entry_point(void* arg) {
+    auto* wrapper = static_cast<ThreadWrapper*>(arg);
+    wrapper->func();
+    delete wrapper;
     return nullptr;
 }
 
-NuttxThread::NuttxThread() : thread_started_(false) {
-    memset(&thread_, 0, sizeof(thread_));
-}
+NuttxThread::NuttxThread() : thread_id_(0), is_running_(false) {}
 
 NuttxThread::~NuttxThread() {
-    if (thread_started_) {
-        pthread_join(thread_, nullptr);
+    if (is_running_) {
+        join();
     }
 }
 
 bool NuttxThread::start(std::function<void()> func) {
-    if (thread_started_) {
-        return false; // 线程已经启动
+    if (is_running_) {
+        return false;
     }
+
+    auto* wrapper = new ThreadWrapper(func);
     
-    ThreadWrapper* wrapper = new ThreadWrapper(func);
-    
-    int result = pthread_create(&thread_, nullptr, thread_entry, wrapper);
-    if (result == 0) {
-        thread_started_ = true;
-        return true;
-    } else {
+    int result = pthread_create(&thread_id_, nullptr, thread_entry_point, wrapper);
+    if (result != 0) {
         delete wrapper;
         return false;
     }
+
+    is_running_ = true;
+    return true;
 }
 
 bool NuttxThread::join() {
-    if (!thread_started_) {
+    if (!is_running_) {
         return false;
     }
-    
-    int result = pthread_join(thread_, nullptr);
+
+    int result = pthread_join(thread_id_, nullptr);
+    is_running_ = false;
     return result == 0;
 }
 
 bool NuttxThread::detach() {
-    if (!thread_started_) {
+    if (!is_running_) {
         return false;
     }
-    
-    int result = pthread_detach(thread_);
+
+    int result = pthread_detach(thread_id_);
+    is_running_ = false;
     return result == 0;
 }
+
+bool NuttxThread::is_running() const {
+    return is_running_;
+}
+
+} // namespace nuttx
+} // namespace platform
+} // namespace vcu

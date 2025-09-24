@@ -55,9 +55,15 @@ CanResult PlatformCanInterface::initialize(const std::string& interface_name, ui
     bitrate_ = bitrate;
 
     CanResult result = platform_specific_initialize(interface_name, bitrate);
+    // 修复条件判断问题：明确处理不支持的平台
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_NUTTX)
     if (result == CanResult::SUCCESS) {
         is_initialized_ = true;
     }
+#else
+    // 对于不支持的平台，直接返回错误
+    return result;
+#endif
 
     return result;
 }
@@ -138,6 +144,8 @@ void PlatformCanInterface::receive_thread_main() {
         CanFrame frame;
         CanResult result = platform_specific_receive(frame);
         
+        // 修复条件判断问题：明确处理不支持的平台
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_NUTTX)
         if (result == CanResult::SUCCESS) {
             callback_mutex_->lock();
             if (receive_callback_) {
@@ -151,6 +159,10 @@ void PlatformCanInterface::receive_thread_main() {
             // Other errors, sleep and retry
             time_interface->sleep_ms(10);
         }
+#else
+        // 对于不支持的平台，直接退出接收循环
+        break;
+#endif
     }
 }
 
@@ -315,15 +327,15 @@ void PlatformCanInterface::platform_specific_cleanup() {
 
 #else
 // Default implementation for unsupported platforms
-CanResult PlatformCanInterface::platform_specific_initialize(const std::string& interface_name, uint32_t bitrate) {
+CanResult PlatformCanInterface::platform_specific_initialize(const std::string& /* interface_name */, uint32_t /* bitrate */) {
     return CanResult::ERROR_NOT_SUPPORTED;
 }
 
-CanResult PlatformCanInterface::platform_specific_send(const CanFrame& frame) {
+CanResult PlatformCanInterface::platform_specific_send(const CanFrame& /* frame */) {
     return CanResult::ERROR_NOT_SUPPORTED;
 }
 
-CanResult PlatformCanInterface::platform_specific_receive(CanFrame& frame) {
+CanResult PlatformCanInterface::platform_specific_receive(CanFrame& /* frame */) {
     return CanResult::ERROR_NOT_SUPPORTED;
 }
 
