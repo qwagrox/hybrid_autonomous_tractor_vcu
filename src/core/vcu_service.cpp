@@ -16,7 +16,7 @@ VcuService::~VcuService() {
     shutdown();
 }
 
-bool VcuService::initialize(const std::string& config_path) {
+bool VcuService::initialize(const std::string& /* config_path */) {
     if (state_ != VcuState::OFF) {
         return false;
     }
@@ -49,7 +49,7 @@ bool VcuService::initialize(const std::string& config_path) {
         // Create ADAS interface
         adas_interface_ = std::make_shared<adas_interface::AdasCanInterface>(platform_.get(), can_interface_);
         if (!adas_interface_->initialize()) {
-            diag_monitor_->log(diag::LogLevel::WARNING, "ADAS interface initialization failed, continuing without ADAS");
+            diag_monitor_->log(diag::LogLevel::WARN, "ADAS interface initialization failed, continuing without ADAS");
             adas_interface_.reset();
         }
 
@@ -152,7 +152,7 @@ void VcuService::main_loop() {
     const uint32_t loop_period_ms = 50; // 20Hz control loop
 
     while (running_ && state_ == VcuState::RUNNING) {
-        uint64_t loop_start = time_interface->get_current_time_ms();
+        uint64_t loop_start = time_interface->get_monotonic_time_ms();
 
         try {
             // Process ADAS commands
@@ -166,7 +166,7 @@ void VcuService::main_loop() {
         }
 
         // Maintain loop timing
-        uint64_t loop_end = time_interface->get_current_time_ms();
+        uint64_t loop_end = time_interface->get_monotonic_time_ms();
         uint64_t elapsed = loop_end - loop_start;
         
         if (elapsed < loop_period_ms) {
