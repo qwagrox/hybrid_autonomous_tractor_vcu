@@ -1,5 +1,3 @@
-// Copyright 2025 Manus AI
-
 #ifndef VCU_DIAG_FILE_DIAGNOSTIC_MONITOR_H_
 #define VCU_DIAG_FILE_DIAGNOSTIC_MONITOR_H_
 
@@ -13,7 +11,7 @@ namespace diag {
 
 class FileDiagnosticMonitor : public DiagnosticMonitor {
 public:
-    FileDiagnosticMonitor(const std::string& log_file_path = "/var/log/vcu.log");
+    explicit FileDiagnosticMonitor(const std::string& log_file_path = "/var/log/vcu.log");
     ~FileDiagnosticMonitor() override;
 
     void log(LogLevel level, const std::string& message) override;
