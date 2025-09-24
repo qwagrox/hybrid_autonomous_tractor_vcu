@@ -29,6 +29,10 @@ add_library(vcu_controller
     src/can/socketcan_interface.cpp
     src/sensors/sensor_data_manager.cpp
     src/prediction/load_predictor.cpp
+    src/core/vcu_service.cpp
+    src/hal/linux_hal.cpp
+    src/config/json_config_manager.cpp
+    src/diag/file_diagnostic_monitor.cpp
 )
 
 target_include_directories(vcu_controller PUBLIC
@@ -89,14 +93,39 @@ target_link_libraries(prediction_tests
     GTest::gtest_main
 )
 
+# Core Service Tests
+add_executable(core_tests
+    tests/test_main.cpp
+    tests/core/test_vcu_service.cpp
+    tests/config/test_config_manager.cpp
+    tests/diag/test_diagnostic_monitor.cpp
+)
+
+target_link_libraries(core_tests
+    vcu_controller
+    GTest::gtest
+    GTest::gtest_main
+)
+
+# VCU Main Executable
+add_executable(vcu_main
+    src/vcu_main.cpp
+)
+
+target_link_libraries(vcu_main
+    vcu_controller
+    pthread
+)
+
 # Add tests
 add_test(NAME cvt_controller_tests COMMAND cvt_tests)
 add_test(NAME can_module_tests COMMAND can_tests)
 add_test(NAME sensor_module_tests COMMAND sensor_tests)
 add_test(NAME prediction_module_tests COMMAND prediction_tests)
+add_test(NAME core_service_tests COMMAND core_tests)
 
 # Installation
-install(TARGETS vcu_controller
+install(TARGETS vcu_controller vcu_main
     EXPORT vcu_controller_targets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib

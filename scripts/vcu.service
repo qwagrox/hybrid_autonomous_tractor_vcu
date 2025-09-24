@@ -1,0 +1,33 @@
+[Unit]
+Description=VCU (Vehicle Control Unit) Main Service
+Documentation=https://github.com/qwagrox/hybrid_autonomous_tractor_vcu
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=vcu
+Group=vcu
+ExecStart=/usr/local/bin/vcu_main -c /etc/vcu/vcu_config.json
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartSec=5s
+
+# Security settings
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log/vcu /var/lib/vcu /tmp
+PrivateTmp=yes
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Environment
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=VCU_LOG_LEVEL=INFO
+
+[Install]
+WantedBy=multi-user.target
