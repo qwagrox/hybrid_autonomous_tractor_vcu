@@ -1,5 +1,3 @@
-// Copyright 2025 Manus AI
-
 #include "vcu/can/platform_can_interface.h"
 #include "vcu/platform/time_interface.h"
 
@@ -157,7 +155,7 @@ void PlatformCanInterface::receive_thread_main() {
 }
 
 #ifdef PLATFORM_LINUX
-CanResult PlatformCanInterface::platform_specific_initialize(const std::string& interface_name, uint32_t bitrate) {
+CanResult PlatformCanInterface::platform_specific_initialize(const std::string& interface_name, uint32_t /* bitrate */) {
     auto* data = new LinuxCanData();
     platform_data_ = data;
 

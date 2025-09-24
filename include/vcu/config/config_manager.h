@@ -1,10 +1,9 @@
-// Copyright 2025 Manus AI
-
 #ifndef VCU_CONFIG_CONFIG_MANAGER_H_
 #define VCU_CONFIG_CONFIG_MANAGER_H_
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 namespace vcu {
 namespace config {

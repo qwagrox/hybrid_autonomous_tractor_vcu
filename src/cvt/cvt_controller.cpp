@@ -43,7 +43,7 @@ common::CvtState CvtController::get_current_state() const {
     return cvt_state_;
 }
 
-float CvtController::calculate_optimal_ratio(const common::PerceptionData& perception, const common::PredictionResult& prediction) {
+float CvtController::calculate_optimal_ratio(const common::PerceptionData& perception, const common::PredictionResult& /* prediction */) {
     float optimal_ratio = 1.0f;
     
     switch (drive_mode_) {

@@ -351,12 +351,12 @@ void AdasCanInterface::process_adas_drive_command(const can::CanFrame& frame) {
     }
 }
 
-void AdasCanInterface::process_adas_steering_command(const can::CanFrame& frame) {
+void AdasCanInterface::process_adas_steering_command(const can::CanFrame& /* frame */) {
     // 转向指令处理 (如果需要)
     // 目前VCU主要处理驱动指令，转向由其他ECU处理
 }
 
-void AdasCanInterface::process_adas_heartbeat(const can::CanFrame& frame) {
+void AdasCanInterface::process_adas_heartbeat(const can::CanFrame& /* frame */) {
     data_mutex_->lock();
     last_heartbeat_received_ms_ = time_interface_->get_monotonic_time_ms();
     

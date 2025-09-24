@@ -1,5 +1,3 @@
-// Copyright 2025 Manus AI
-
 #include "vcu/core/vcu_service.h"
 #include "vcu/adas_interface/adas_interface_factory.h"
 #include "vcu/can/can_interface.h"
@@ -18,7 +16,7 @@ VcuService::~VcuService() {
     shutdown();
 }
 
-bool VcuService::initialize(const std::string& config_path) {
+bool VcuService::initialize(const std::string& /* config_path */) {
     if (state_ != VcuState::OFF) {
         return false;
     }
