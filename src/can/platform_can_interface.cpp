@@ -43,7 +43,7 @@ PlatformCanInterface::PlatformCanInterface(PlatformInterface* platform)
 }
 
 PlatformCanInterface::~PlatformCanInterface() {
-    shutdown();
+    PlatformCanInterface::shutdown();  // 显式调用本类的shutdown方法，避免虚函数调用
 }
 
 CanResult PlatformCanInterface::initialize(const std::string& interface_name, uint32_t bitrate) {

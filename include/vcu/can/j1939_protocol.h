@@ -68,7 +68,7 @@ public:
 
 private:
     static uint16_t extract_uint16_le(const uint8_t* data, size_t offset);
-    static uint32_t extract_uint32_le(const uint8_t* data, size_t offset);
+    // 移除未使用的extract_uint32_le函数
     static void insert_uint32_le(uint8_t* data, size_t offset, uint32_t value);
 };
 
