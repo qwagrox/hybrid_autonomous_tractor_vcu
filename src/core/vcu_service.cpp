@@ -1,112 +1,76 @@
 #include "vcu/core/vcu_service.h"
-#include "vcu/adas_interface/adas_interface_factory.h"
-#include "vcu/can/can_interface.h"
+#include "vcu/platform/platform_factory.h"
+#include <chrono>
+#include <thread>
 
 namespace vcu {
 namespace core {
 
+// 修复：在初始化列表中初始化platform_
 VcuService::VcuService()
-    : state_(VcuState::OFF),
-      running_(false) {
-    // 创建平台抽象层
-    platform_ = PlatformFactory::create_platform();
+    : platform_(PlatformFactory::create_platform()),
+      state_(VcuState::OFF),
+      is_running_(false),
+      cvt_controller_(std::make_unique<cvt::CvtController>()),
+      sensor_manager_(std::make_unique<sensors::PlatformSensorDataManager>(platform_)),
+      load_predictor_(std::make_unique<prediction::PlatformLoadPredictor>(platform_)),
+      adas_interface_(nullptr),
+      config_manager_(std::make_unique<config::JsonConfigManager>()),
+      diagnostic_monitor_(std::make_unique<diag::FileDiagnosticMonitor>("vcu_diagnostics.log")) {
 }
 
 VcuService::~VcuService() {
     shutdown();
 }
 
-bool VcuService::initialize(const std::string& /* config_path */) {
+bool VcuService::initialize() {
     if (state_ != VcuState::OFF) {
         return false;
     }
 
-    state_ = VcuState::INITIALIZING;
-
-    try {
-        // 初始化配置管理器
-        config_manager_ = std::make_shared<config::JsonConfigManager>();
-        // 简化：不检查配置加载结果
-
-        // 初始化诊断监控器
-        diag_monitor_ = std::make_shared<diag::FileDiagnosticMonitor>();
-        // 简化：不检查初始化结果
-
-        // 初始化硬件抽象层
-        hal_ = std::make_shared<hal::LinuxHal>();
-        // 简化：不检查初始化结果
-
-        // 创建CAN接口
-        can_interface_ = can::create_can_interface();
-        if (!can_interface_) {
-            state_ = VcuState::FAULT;
-            return false;
-        }
-
-        // 初始化CAN接口
-        if (can_interface_->initialize("can0", 500000) != can::CanResult::SUCCESS) {
-            state_ = VcuState::FAULT;
-            return false;
-        }
-
-        // 创建智驾接口
-        adas_interface_ = adas_interface::create_adas_can_interface(
-            platform_.get(), can_interface_);
-        if (!adas_interface_) {
-            state_ = VcuState::FAULT;
-            return false;
-        }
-
-        // 初始化智驾接口
-        if (!adas_interface_->initialize(0x20)) {  // VCU CAN地址
-            state_ = VcuState::FAULT;
-            return false;
-        }
-
-        // 初始化传感器数据管理器
-        sensor_manager_ = std::make_shared<sensors::PlatformSensorDataManager>(
-            platform_.get(), can_interface_);
-        // 简化：不检查初始化结果
-
-        // 初始化负载预测器
-        load_predictor_ = std::make_shared<prediction::LoadPredictor>();
-        // 简化：不检查初始化结果
-
-        // 初始化CVT控制器
-        cvt_controller_ = std::make_shared<cvt::CvtController>();
-        // 简化：不检查初始化结果
-
-        // 创建主线程
-        main_thread_ = platform_->create_thread();
-        if (!main_thread_) {
-            state_ = VcuState::FAULT;
-            return false;
-        }
-
-        state_ = VcuState::RUNNING;
-        return true;
-
-    } catch (const std::exception& e) {
-        state_ = VcuState::FAULT;
+    // Initialize platform
+    if (!platform_->initialize()) {
+        diagnostic_monitor_->log_fault(1001, "Platform initialization failed");
         return false;
     }
-}
 
-void VcuService::run() {
-    if (state_ != VcuState::RUNNING) {
-        return;
+    // Load configuration
+    config::VcuConfig config;
+    if (!config_manager_->load_configuration("vcu_config.json", config)) {
+        diagnostic_monitor_->log_warning("Failed to load configuration, using defaults");
+        config = config_manager_->get_default_configuration();
     }
 
-    running_ = true;
-
-    // 启动主线程
-    if (!main_thread_->start([this]() { main_loop(); })) {
-        state_ = VcuState::FAULT;
-        return;
+    // Initialize CVT controller
+    if (!cvt_controller_->initialize()) {
+        diagnostic_monitor_->log_fault(1002, "CVT controller initialization failed");
+        return false;
     }
 
-    // 等待主线程结束
-    main_thread_->join();
+    // Initialize sensor manager
+    if (!sensor_manager_->initialize()) {
+        diagnostic_monitor_->log_fault(1003, "Sensor manager initialization failed");
+        return false;
+    }
+
+    // Initialize load predictor
+    if (!load_predictor_->initialize()) {
+        diagnostic_monitor_->log_fault(1004, "Load predictor initialization failed");
+        return false;
+    }
+
+    // Initialize ADAS interface
+    adas_interface_ = adas_interface::create_adas_interface(platform_);
+    if (!adas_interface_) {
+        diagnostic_monitor_->log_warning("ADAS interface creation failed, continuing without ADAS");
+    } else if (!adas_interface_->initialize()) {
+        diagnostic_monitor_->log_warning("ADAS interface initialization failed, continuing without ADAS");
+        adas_interface_.reset();
+    }
+
+    state_ = VcuState::READY;
+    diagnostic_monitor_->log_info("VCU Service initialized successfully");
+    return true;
 }
 
 void VcuService::shutdown() {
@@ -114,105 +78,114 @@ void VcuService::shutdown() {
         return;
     }
 
-    state_ = VcuState::SHUTTING_DOWN;
-    running_ = false;
+    stop();
 
-    // 等待主线程结束
-    if (main_thread_) {
-        main_thread_->join();
-        main_thread_.reset();
-    }
-
-    // 关闭智驾接口
+    // Shutdown components in reverse order
     if (adas_interface_) {
         adas_interface_->shutdown();
         adas_interface_.reset();
     }
 
-    // 关闭其他组件
-    cvt_controller_.reset();
-    sensor_manager_.reset();
-    load_predictor_.reset();
-
-    if (can_interface_) {
-        can_interface_->shutdown();
-        can_interface_.reset();
+    if (load_predictor_) {
+        load_predictor_->shutdown();
     }
 
-    hal_.reset();
-    diag_monitor_.reset();
-    config_manager_.reset();
-    platform_.reset();
+    if (sensor_manager_) {
+        sensor_manager_->shutdown();
+    }
+
+    if (cvt_controller_) {
+        cvt_controller_->shutdown();
+    }
+
+    if (platform_) {
+        platform_->shutdown();
+    }
 
     state_ = VcuState::OFF;
+    diagnostic_monitor_->log_info("VCU Service shutdown completed");
+}
+
+bool VcuService::start() {
+    if (state_ != VcuState::READY) {
+        return false;
+    }
+
+    is_running_ = true;
+    state_ = VcuState::RUNNING;
+
+    // Start main control loop
+    main_thread_ = platform_->create_thread();
+    main_thread_->start([this]() {
+        main_control_loop();
+    });
+
+    diagnostic_monitor_->log_info("VCU Service started");
+    return true;
+}
+
+void VcuService::stop() {
+    if (state_ != VcuState::RUNNING) {
+        return;
+    }
+
+    is_running_ = false;
+    
+    if (main_thread_) {
+        main_thread_->join();
+        main_thread_.reset();
+    }
+
+    state_ = VcuState::READY;
+    diagnostic_monitor_->log_info("VCU Service stopped");
 }
 
 VcuState VcuService::get_state() const {
     return state_;
 }
 
-void VcuService::main_loop() {
-    while (running_ && state_ == VcuState::RUNNING) {
+void VcuService::main_control_loop() {
+    auto time_interface = platform_->create_time();
+    const uint32_t loop_period_ms = 50; // 20Hz control loop
+
+    while (is_running_) {
+        uint64_t loop_start = time_interface->get_current_time_ms();
+
         try {
-            // 处理智驾指令
-            process_ad_commands();
+            // Get sensor data
+            common::SensorData sensor_data;
+            if (sensor_manager_->get_latest_sensor_data(sensor_data)) {
+                // Predict load
+                prediction::PredictionResult prediction;
+                if (load_predictor_->predict_load(sensor_data, prediction)) {
+                    // Update CVT controller
+                    cvt_controller_->update_sensor_data(sensor_data);
+                    cvt_controller_->update_prediction(prediction);
 
-            // 更新车辆状态
-            update_vehicle_state();
+                    // Get ADAS commands if available
+                    if (adas_interface_) {
+                        auto adas_command = adas_interface_->get_latest_command();
+                        if (adas_command.has_value()) {
+                            cvt_controller_->update_adas_command(adas_command.value());
+                        }
+                    }
 
-            // 短暂休眠
-            platform_->create_time_interface()->sleep_ms(10);  // 100Hz主循环
-
-        } catch (const std::exception& e) {
-            state_ = VcuState::FAULT;
-            break;
+                    // Execute control
+                    cvt_controller_->execute_control();
+                }
+            }
+        } catch (...) {
+            diagnostic_monitor_->log_error("Exception in main control loop");
         }
-    }
-}
 
-void VcuService::process_ad_commands() {
-    if (!adas_interface_) {
-        return;
-    }
-
-    // 获取最新的智驾指令
-    auto command = adas_interface_->get_latest_adas_command();
-    if (command.has_value()) {
-        // 处理紧急停车
-        if (command->emergency_stop) {
-            running_ = false;
-        }
-    }
-}
-
-void VcuService::update_vehicle_state() {
-    if (!adas_interface_ || !sensor_manager_) {
-        return;
-    }
-
-    try {
-        // 获取传感器数据
-        common::PerceptionData sensor_data;
-        auto result = sensor_manager_->get_current_data(sensor_data);
+        // Maintain loop timing
+        uint64_t loop_end = time_interface->get_current_time_ms();
+        uint64_t elapsed = loop_end - loop_start;
         
-        if (result == sensors::SensorDataResult::SUCCESS) {
-            // 构建VCU状态报告
-            adas_interface::AdasCanInterface::VcuStatusForAdas status;
-            status.current_speed_mps = sensor_data.vehicle_speed_mps;
-            status.engine_rpm = sensor_data.engine_speed_rpm;
-            status.cvt_ratio = 1.0f;
-            status.system_state = adas::AdasVcuState::ACTIVE;
-            status.adas_ready = true;
-            status.cvt_ready = true;
-            status.load_factor = sensor_data.engine_load_percent / 100.0f;
-            status.fault_codes = 0;
-
-            // 发送状态到智驾系统
-            adas_interface_->send_vcu_status(status);
+        if (elapsed < loop_period_ms) {
+            auto sleep_time = platform_->create_time();
+            sleep_time->sleep_ms(loop_period_ms - elapsed);
         }
-
-    } catch (const std::exception& e) {
-        // 简化错误处理
     }
 }
 

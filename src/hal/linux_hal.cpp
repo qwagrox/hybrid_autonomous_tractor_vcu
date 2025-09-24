@@ -1,4 +1,5 @@
 #include "vcu/hal/linux_hal.h"
+#include "vcu/can/socketcan_interface.h"
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
@@ -8,78 +9,53 @@
 namespace vcu {
 namespace hal {
 
-LinuxHal::LinuxHal() : is_initialized_(false) {}
+// 修复：使用正确的成员变量名
+LinuxHal::LinuxHal() : initialized_(false) {}
 
 LinuxHal::~LinuxHal() {
-    shutdown();
+    // 修复：显式调用本类的shutdown方法，避免虚函数调用
+    LinuxHal::shutdown();
 }
 
-HalResult LinuxHal::initialize() {
-    if (is_initialized_) {
-        return HalResult::SUCCESS;
+bool LinuxHal::initialize() {
+    if (initialized_) {
+        return true;
     }
 
     if (!check_system_requirements()) {
-        return HalResult::ERROR_SYSTEM_REQUIREMENTS;
+        return false;
     }
 
-    if (!setup_can_interfaces()) {
-        return HalResult::ERROR_CAN_SETUP;
-    }
+    // 修复：移除总是true的条件判断，直接调用
+    setup_can_interfaces();
 
-    is_initialized_ = true;
-    return HalResult::SUCCESS;
+    initialized_ = true;
+    return true;
 }
 
-HalResult LinuxHal::shutdown() {
-    if (!is_initialized_) {
-        return HalResult::SUCCESS;
+void LinuxHal::shutdown() {
+    if (!initialized_) {
+        return;
     }
 
-    cleanup_can_interfaces();
-    is_initialized_ = false;
-    return HalResult::SUCCESS;
+    can_interfaces_.clear();
+    initialized_ = false;
 }
 
-bool LinuxHal::is_ready() const {
-    return is_initialized_;
-}
-
-std::string LinuxHal::get_system_info() const {
-    struct utsname system_info;
-    if (uname(&system_info) == 0) {
-        std::ostringstream info;
-        info << "System: " << system_info.sysname << " " << system_info.release
-             << " (" << system_info.machine << ")";
-        return info.str();
+std::shared_ptr<can::ICanInterface> LinuxHal::get_can_interface(const std::string& can_bus_name) {
+    auto it = can_interfaces_.find(can_bus_name);
+    if (it != can_interfaces_.end()) {
+        return it->second;
     }
-    return "Unknown Linux system";
-}
 
-HalResult LinuxHal::read_sensor_data(const std::string& sensor_name, float& value) {
-    // Simulate sensor reading for testing
-    if (sensor_name == "engine_temp") {
-        value = 85.5f;
-    } else if (sensor_name == "oil_pressure") {
-        value = 3.2f;
-    } else if (sensor_name == "fuel_level") {
-        value = 75.0f;
-    } else {
-        return HalResult::ERROR_SENSOR_NOT_FOUND;
+    // Create new SocketCAN interface
+    auto can_interface = std::make_shared<can::SocketCanInterface>();
+    if (can_interface->initialize(can_bus_name, 500000) == can::CanResult::SUCCESS) {
+        can_interfaces_[can_bus_name] = can_interface;
+        return can_interface;
     }
-    
-    return HalResult::SUCCESS;
-}
 
-HalResult LinuxHal::write_actuator_data(const std::string& actuator_name, float value) {
-    // Simulate actuator control for testing
-    if (actuator_name == "cvt_ratio" && value >= 0.5f && value <= 3.0f) {
-        return HalResult::SUCCESS;
-    } else if (actuator_name == "engine_throttle" && value >= 0.0f && value <= 100.0f) {
-        return HalResult::SUCCESS;
-    } else {
-        return HalResult::ERROR_ACTUATOR_INVALID;
-    }
+    return nullptr;
 }
 
 bool LinuxHal::check_system_requirements() {
@@ -102,11 +78,9 @@ bool LinuxHal::check_system_requirements() {
         if (line.find("can") != std::string::npos) {
             can_support = true;
         }
-        // 修复：使用socketcan_support变量来检查SocketCAN支持
+        // SocketCAN raw protocol support enhances functionality
         if (line.find("can_raw") != std::string::npos) {
-            // SocketCAN raw protocol support found
-            // This enhances CAN functionality but is not strictly required
-            can_support = true; // 将socketcan支持也视为CAN支持的一部分
+            can_support = true;
         }
     }
 
@@ -120,13 +94,6 @@ bool LinuxHal::setup_can_interfaces() {
     // 3. Bring interfaces up
     // For simulation, we just return true
     return true;
-}
-
-void LinuxHal::cleanup_can_interfaces() {
-    // In a real implementation, this would:
-    // 1. Bring CAN interfaces down
-    // 2. Clean up any allocated resources
-    // For simulation, nothing to do
 }
 
 } // namespace hal
