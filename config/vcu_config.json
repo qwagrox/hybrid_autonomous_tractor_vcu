@@ -1,0 +1,24 @@
+{
+  "can_bus_name": "can0",
+  "data_timeout_ms": 1000,
+  "system": {
+    "main_loop_frequency_hz": 100,
+    "diagnostic_level": "INFO"
+  },
+  "cvt": {
+    "min_ratio": 0.5,
+    "max_ratio": 3.0,
+    "shift_smoothing": 0.1
+  },
+  "sensors": {
+    "engine_data_timeout_ms": 500,
+    "vehicle_data_timeout_ms": 500,
+    "cvt_status_timeout_ms": 200
+  },
+  "ad_interface": {
+    "type": "ros2",
+    "command_topic": "/ad/vcu_command",
+    "state_topic": "/vcu/vehicle_state",
+    "heartbeat_interval_ms": 100
+  }
+}
