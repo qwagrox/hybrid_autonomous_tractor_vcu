@@ -18,9 +18,10 @@ enum class DriveMode {
  * @brief Defines the manufacturer of the CVT.
  */
 enum class CvtManufacturer {
-    UNKNOWN,    // Unknown manufacturer
-    BOSCH,      // Bosch
-    ZF          // ZF
+    UNKNOWN,         // Unknown manufacturer
+    HMCVT_VENDOR1,   // HMCVT_Vendor1 manufacturer
+    BOSCH,           // Bosch
+    ZF               // ZF
 };
 
 /**

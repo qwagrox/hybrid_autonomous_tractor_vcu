@@ -1,37 +1,38 @@
+// Copyright 2025 Manus AI
+
 #include "vcu/can/platform_can_interface.h"
-#include <thread>
-#include <chrono>
+#include "vcu/platform/time_interface.h"
 
 #ifdef PLATFORM_LINUX
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #include <linux/can.h>
 #include <linux/can/raw.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
 #include <cstring>
-#endif
-
-#ifdef PLATFORM_NUTTX
+#elif defined(PLATFORM_NUTTX)
 #include <nuttx/can.h>
+#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cstring>
 #endif
 
 namespace vcu {
 namespace can {
 
-struct PlatformCanData {
 #ifdef PLATFORM_LINUX
+struct LinuxCanData {
     int socket_fd;
     struct sockaddr_can addr;
-    struct ifreq ifr;
-#endif
-#ifdef PLATFORM_NUTTX
-    int can_fd;
-    std::string device_path;
-#endif
 };
+#elif defined(PLATFORM_NUTTX)
+struct NuttxCanData {
+    int can_fd;
+    struct can_msg_s msg;
+};
+#endif
 
 PlatformCanInterface::PlatformCanInterface(PlatformInterface* platform)
     : platform_(platform),
@@ -40,27 +41,11 @@ PlatformCanInterface::PlatformCanInterface(PlatformInterface* platform)
       is_receiving_(false),
       platform_data_(nullptr) {
     
-    if (platform_) {
-        callback_mutex_ = platform_->create_mutex();
-    }
-    
-    // Allocate platform-specific data
-    platform_data_ = new PlatformCanData();
-    
-#ifdef PLATFORM_LINUX
-    static_cast<PlatformCanData*>(platform_data_)->socket_fd = -1;
-#endif
-#ifdef PLATFORM_NUTTX
-    static_cast<PlatformCanData*>(platform_data_)->can_fd = -1;
-#endif
+    callback_mutex_ = platform_->create_mutex();
 }
 
 PlatformCanInterface::~PlatformCanInterface() {
     shutdown();
-    if (platform_data_) {
-        delete static_cast<PlatformCanData*>(platform_data_);
-        platform_data_ = nullptr;
-    }
 }
 
 CanResult PlatformCanInterface::initialize(const std::string& interface_name, uint32_t bitrate) {
@@ -117,17 +102,12 @@ CanResult PlatformCanInterface::start_receive() {
     }
 
     if (is_receiving_) {
-        return CanResult::ERROR_INIT;
+        return CanResult::SUCCESS;
     }
 
     is_receiving_ = true;
-    
-    if (platform_) {
-        receive_thread_ = platform_->create_thread();
-        receive_thread_->start([this]() {
-            receive_thread_main();
-        });
-    }
+    receive_thread_ = platform_->create_thread();
+    receive_thread_->start([this]() { this->receive_thread_main(); });
 
     return CanResult::SUCCESS;
 }
@@ -148,190 +128,209 @@ CanResult PlatformCanInterface::stop_receive() {
 }
 
 void PlatformCanInterface::set_receive_callback(std::function<void(const CanFrame&)> callback) {
-    if (callback_mutex_) {
-        callback_mutex_->lock();
-        receive_callback_ = callback;
-        callback_mutex_->unlock();
-    } else {
-        receive_callback_ = callback;
-    }
+    callback_mutex_->lock();
+    receive_callback_ = callback;
+    callback_mutex_->unlock();
 }
 
 void PlatformCanInterface::receive_thread_main() {
+    auto time_interface = platform_->create_time_interface();
+    
     while (is_receiving_) {
         CanFrame frame;
         CanResult result = platform_specific_receive(frame);
         
-        if (result == CanResult::SUCCESS && receive_callback_) {
-            if (callback_mutex_) {
-                callback_mutex_->lock();
-                if (receive_callback_) {
-                    receive_callback_(frame);
-                }
-                callback_mutex_->unlock();
-            } else {
+        if (result == CanResult::SUCCESS) {
+            callback_mutex_->lock();
+            if (receive_callback_) {
                 receive_callback_(frame);
             }
+            callback_mutex_->unlock();
+        } else if (result == CanResult::ERROR_TIMEOUT) {
+            // Timeout is expected, continue
+            time_interface->sleep_ms(10);
+        } else {
+            // Other errors, sleep and retry
+            time_interface->sleep_ms(10);
         }
-        
-        // Small delay to prevent busy waiting
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 
 #ifdef PLATFORM_LINUX
-CanResult PlatformCanInterface::platform_specific_initialize(const std::string& interface_name, uint32_t bitrate) {
-    auto* data = static_cast<PlatformCanData*>(platform_data_);
-    
+CanResult PlatformCanInterface::platform_specific_initialize(const std::string& interface_name, uint32_t /* bitrate */) {
+    auto* data = new LinuxCanData();
+    platform_data_ = data;
+
+    // Create SocketCAN socket
     data->socket_fd = socket(PF_CAN, SOCK_RAW, CAN_RAW);
     if (data->socket_fd < 0) {
+        delete data;
+        platform_data_ = nullptr;
         return CanResult::ERROR_INIT;
     }
 
-    std::strcpy(data->ifr.ifr_name, interface_name.c_str());
-    if (ioctl(data->socket_fd, SIOCGIFINDEX, &data->ifr) < 0) {
+    // Get interface index
+    struct ifreq ifr;
+    strncpy(ifr.ifr_name, interface_name.c_str(), IFNAMSIZ - 1);
+    ifr.ifr_name[IFNAMSIZ - 1] = '\0';
+    
+    if (ioctl(data->socket_fd, SIOCGIFINDEX, &ifr) < 0) {
         close(data->socket_fd);
-        data->socket_fd = -1;
+        delete data;
+        platform_data_ = nullptr;
         return CanResult::ERROR_INIT;
     }
 
+    // Bind socket to CAN interface
     data->addr.can_family = AF_CAN;
-    data->addr.can_ifindex = data->ifr.ifr_ifindex;
+    data->addr.can_ifindex = ifr.ifr_ifindex;
 
-    if (bind(data->socket_fd, reinterpret_cast<struct sockaddr*>(&data->addr), sizeof(data->addr)) < 0) {
+    if (bind(data->socket_fd, (struct sockaddr*)&data->addr, sizeof(data->addr)) < 0) {
         close(data->socket_fd);
-        data->socket_fd = -1;
+        delete data;
+        platform_data_ = nullptr;
         return CanResult::ERROR_INIT;
     }
-
-    // Note: Bitrate configuration is typically done via ip command in Linux
-    (void)bitrate; // Suppress unused parameter warning
 
     return CanResult::SUCCESS;
 }
 
 CanResult PlatformCanInterface::platform_specific_send(const CanFrame& frame) {
-    auto* data = static_cast<PlatformCanData*>(platform_data_);
-    
+    auto* data = static_cast<LinuxCanData*>(platform_data_);
+    if (!data) {
+        return CanResult::ERROR_NOT_INITIALIZED;
+    }
+
     struct can_frame can_frame;
     can_frame.can_id = frame.get_id();
-    if (frame.is_extended) {
-        can_frame.can_id |= CAN_EFF_FLAG;
-    }
     can_frame.can_dlc = frame.get_dlc();
-    std::memcpy(can_frame.data, frame.get_data(), frame.get_dlc());
+    memcpy(can_frame.data, frame.get_data(), frame.get_dlc());
 
-    ssize_t bytes_sent = write(data->socket_fd, &can_frame, sizeof(struct can_frame));
-    if (bytes_sent != sizeof(struct can_frame)) {
+    ssize_t bytes_sent = write(data->socket_fd, &can_frame, sizeof(can_frame));
+    if (bytes_sent != sizeof(can_frame)) {
         return CanResult::ERROR_SEND;
     }
-    
+
     return CanResult::SUCCESS;
 }
 
 CanResult PlatformCanInterface::platform_specific_receive(CanFrame& frame) {
-    auto* data = static_cast<PlatformCanData*>(platform_data_);
-    
-    struct can_frame can_frame;
-    ssize_t bytes_received = read(data->socket_fd, &can_frame, sizeof(struct can_frame));
-    
-    if (bytes_received == sizeof(struct can_frame)) {
-        bool is_extended = (can_frame.can_id & CAN_EFF_FLAG) != 0;
-        uint32_t id = can_frame.can_id & (is_extended ? CAN_EFF_MASK : CAN_SFF_MASK);
-        
-        frame = CanFrame(id, can_frame.data, can_frame.can_dlc);
-        frame.is_extended = is_extended;
-        return CanResult::SUCCESS;
+    auto* data = static_cast<LinuxCanData*>(platform_data_);
+    if (!data) {
+        return CanResult::ERROR_NOT_INITIALIZED;
     }
+
+    struct can_frame can_frame;
+    ssize_t bytes_received = read(data->socket_fd, &can_frame, sizeof(can_frame));
     
-    return CanResult::ERROR_TIMEOUT;
+    if (bytes_received == sizeof(can_frame)) {
+        frame = CanFrame(can_frame.can_id, can_frame.data, can_frame.can_dlc);
+        return CanResult::SUCCESS;
+    } else if (bytes_received < 0) {
+        return CanResult::ERROR_TIMEOUT;
+    } else {
+        return CanResult::ERROR_RECEIVE;
+    }
 }
 
 void PlatformCanInterface::platform_specific_cleanup() {
-    auto* data = static_cast<PlatformCanData*>(platform_data_);
-    
-    if (data->socket_fd >= 0) {
-        close(data->socket_fd);
-        data->socket_fd = -1;
+    auto* data = static_cast<LinuxCanData*>(platform_data_);
+    if (data) {
+        if (data->socket_fd >= 0) {
+            close(data->socket_fd);
+        }
+        delete data;
+        platform_data_ = nullptr;
     }
 }
-#endif
 
-#ifdef PLATFORM_NUTTX
-CanResult PlatformCanInterface::platform_specific_initialize(const std::string& interface_name, uint32_t bitrate) {
-    auto* data = static_cast<PlatformCanData*>(platform_data_);
-    
-    data->device_path = interface_name;
+#elif defined(PLATFORM_NUTTX)
+CanResult PlatformCanInterface::platform_specific_initialize(const std::string& interface_name, uint32_t /* bitrate */) {
+    auto* data = new NuttxCanData();
+    platform_data_ = data;
+
+    // Open CAN device
     data->can_fd = open(interface_name.c_str(), O_RDWR);
     if (data->can_fd < 0) {
+        delete data;
+        platform_data_ = nullptr;
         return CanResult::ERROR_INIT;
     }
 
+    // Configure bitrate if needed
     // Note: NuttX CAN configuration is typically done at compile time
-    (void)bitrate; // Suppress unused parameter warning
+    // or through board-specific initialization
 
     return CanResult::SUCCESS;
 }
 
 CanResult PlatformCanInterface::platform_specific_send(const CanFrame& frame) {
-    auto* data = static_cast<PlatformCanData*>(platform_data_);
-    
-    struct can_msg_s msg;
-    msg.cm_hdr.ch_id = frame.get_id();
-    msg.cm_hdr.ch_dlc = frame.get_dlc();
-    msg.cm_hdr.ch_rtr = false;
-    msg.cm_hdr.ch_error = 0;
-    msg.cm_hdr.ch_unused = 0;
-    
-    std::memcpy(msg.cm_data, frame.get_data(), frame.get_dlc());
+    auto* data = static_cast<NuttxCanData*>(platform_data_);
+    if (!data) {
+        return CanResult::ERROR_NOT_INITIALIZED;
+    }
 
-    ssize_t bytes_sent = write(data->can_fd, &msg, sizeof(struct can_msg_s));
+    data->msg.cm_hdr.ch_id = frame.get_id();
+    data->msg.cm_hdr.ch_dlc = frame.get_dlc();
+    data->msg.cm_hdr.ch_rtr = false;
+    data->msg.cm_hdr.ch_error = 0;
+    data->msg.cm_hdr.ch_unused = 0;
+    
+    memcpy(data->msg.cm_data, frame.get_data(), frame.get_dlc());
+
+    ssize_t bytes_sent = write(data->can_fd, &data->msg, sizeof(struct can_msg_s));
     if (bytes_sent != sizeof(struct can_msg_s)) {
         return CanResult::ERROR_SEND;
     }
-    
+
     return CanResult::SUCCESS;
 }
 
 CanResult PlatformCanInterface::platform_specific_receive(CanFrame& frame) {
-    auto* data = static_cast<PlatformCanData*>(platform_data_);
-    
-    struct can_msg_s msg;
-    ssize_t bytes_received = read(data->can_fd, &msg, sizeof(struct can_msg_s));
+    auto* data = static_cast<NuttxCanData*>(platform_data_);
+    if (!data) {
+        return CanResult::ERROR_NOT_INITIALIZED;
+    }
+
+    ssize_t bytes_received = read(data->can_fd, &data->msg, sizeof(struct can_msg_s));
     
     if (bytes_received == sizeof(struct can_msg_s)) {
-        frame = CanFrame(msg.cm_hdr.ch_id, msg.cm_data, msg.cm_hdr.ch_dlc);
+        frame = CanFrame(data->msg.cm_hdr.ch_id, data->msg.cm_data, data->msg.cm_hdr.ch_dlc);
         return CanResult::SUCCESS;
+    } else if (bytes_received < 0) {
+        return CanResult::ERROR_TIMEOUT;
+    } else {
+        return CanResult::ERROR_RECEIVE;
     }
-    
-    return CanResult::ERROR_TIMEOUT;
 }
 
 void PlatformCanInterface::platform_specific_cleanup() {
-    auto* data = static_cast<PlatformCanData*>(platform_data_);
-    
-    if (data->can_fd >= 0) {
-        close(data->can_fd);
-        data->can_fd = -1;
+    auto* data = static_cast<NuttxCanData*>(platform_data_);
+    if (data) {
+        if (data->can_fd >= 0) {
+            close(data->can_fd);
+        }
+        delete data;
+        platform_data_ = nullptr;
     }
 }
-#endif
 
-#if !defined(PLATFORM_LINUX) && !defined(PLATFORM_NUTTX)
-CanResult PlatformCanInterface::platform_specific_initialize(const std::string& /* interface_name */, uint32_t /* bitrate */) {
+#else
+// Default implementation for unsupported platforms
+CanResult PlatformCanInterface::platform_specific_initialize(const std::string& interface_name, uint32_t /* bitrate */) {
     return CanResult::ERROR_NOT_SUPPORTED;
 }
 
-CanResult PlatformCanInterface::platform_specific_send(const CanFrame& /* frame */) {
+CanResult PlatformCanInterface::platform_specific_send(const CanFrame& frame) {
     return CanResult::ERROR_NOT_SUPPORTED;
 }
 
-CanResult PlatformCanInterface::platform_specific_receive(CanFrame& /* frame */) {
+CanResult PlatformCanInterface::platform_specific_receive(CanFrame& frame) {
     return CanResult::ERROR_NOT_SUPPORTED;
 }
 
 void PlatformCanInterface::platform_specific_cleanup() {
-    // Nothing to do for unsupported platforms
+    // Nothing to do
 }
 #endif
 

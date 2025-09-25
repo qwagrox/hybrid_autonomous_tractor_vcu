@@ -131,18 +131,16 @@ PredictionResult PlatformLoadPredictor::predict_load(LoadPrediction& prediction)
     // Calculate confidence
     float variance = 0.0f;
     if (history_.size() > 1) {
-        // 使用std::accumulate算法计算平均负载
         float mean_load = std::accumulate(history_.begin(), history_.end(), 0.0f,
             [](float sum, const LoadDataPoint& point) {
                 return sum + point.engine_load_percent;
             }) / history_.size();
 
-        // 使用std::accumulate算法计算方差
-        variance = std::accumulate(history_.begin(), history_.end(), 0.0f,
-            [mean_load](float sum, const LoadDataPoint& point) {
-                float diff = point.engine_load_percent - mean_load;
-                return sum + diff * diff;
-            }) / history_.size();
+        for (const auto& point : history_) {
+            float diff = point.engine_load_percent - mean_load;
+            variance += diff * diff;
+        }
+        variance /= history_.size();
     }
 
     float confidence = calculate_confidence(static_cast<uint32_t>(history_.size()), variance);
@@ -176,19 +174,14 @@ PredictionResult PlatformLoadPredictor::get_statistics(float& avg_load, float& m
         return PredictionResult::SUCCESS;
     }
 
-    // 使用std::accumulate算法计算总负载
-    float total_load = std::accumulate(history_.begin(), history_.end(), 0.0f,
-        [](float sum, const LoadDataPoint& point) {
-            return sum + point.engine_load_percent;
-        });
+    float total_load = 0.0f;
+    max_load = 0.0f;
 
-    // 使用std::max_element算法找到最大负载
-    auto max_element = std::max_element(history_.begin(), history_.end(),
-        [](const LoadDataPoint& a, const LoadDataPoint& b) {
-            return a.engine_load_percent < b.engine_load_percent;
-        });
-    
-    max_load = max_element->engine_load_percent;
+    for (const auto& point : history_) {
+        total_load += point.engine_load_percent;
+        max_load = std::max(max_load, point.engine_load_percent);
+    }
+
     avg_load = total_load / history_.size();
     data_points = static_cast<uint32_t>(history_.size());
 

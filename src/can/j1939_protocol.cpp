@@ -1,4 +1,3 @@
-// Copyright 2025 Manus AI
 
 #include "vcu/can/j1939_protocol.h"
 #include <cstring>
@@ -62,10 +61,9 @@ bool J1939Protocol::decode_vehicle_data(const CanFrame& frame, j1939::VehicleDat
     header.from_can_id(frame.id);
 
     if (header.pgn == j1939::pgn::VEHICLE_SPEED) {
-        // 修复：正确读取字节1-2作为16位值，并正确转换单位
         uint16_t raw_speed = extract_uint16_le(frame.data.data(), 1);
-        float speed_kmh = raw_speed / 256.0f;  // J1939标准：1/256 km/h per bit
-        vehicle_data.vehicle_speed_mps = speed_kmh / 3.6f;  // 转换km/h到m/s
+        float speed_kmh = raw_speed / 256.0f;
+        vehicle_data.vehicle_speed_mps = speed_kmh / 3.6f;
         vehicle_data.data_valid = true;
         return true;
     }
@@ -82,12 +80,9 @@ bool J1939Protocol::decode_cvt_status(const CanFrame& frame, j1939::CvtStatusRep
     header.from_can_id(frame.id);
 
     if (header.pgn == j1939::pgn::CVT_STATUS_REPORT) {
-        // 使用浮点数格式以匹配测试期望
-        float ratio_value;
-        std::memcpy(&ratio_value, frame.data.data(), sizeof(float));
-        cvt_status.current_ratio = ratio_value;
-        
-        // 调整数据位置以匹配测试期望
+        uint32_t raw_ratio;
+        std::memcpy(&raw_ratio, frame.data.data(), sizeof(float));
+        std::memcpy(&cvt_status.current_ratio, &raw_ratio, sizeof(float));
         cvt_status.is_shifting = (frame.data[4] & 0x01) != 0;
         cvt_status.fault_code = frame.data[5];
         cvt_status.data_valid = true;
@@ -103,19 +98,21 @@ CanFrame J1939Protocol::encode_cvt_control_command(const j1939::CvtControlComman
     frame.dlc = 8;
 
     j1939::J1939Header header;
-    header.priority = 3; // High priority for control commands
+    header.priority = 3;
     header.pgn = j1939::pgn::CVT_CONTROL_COMMAND;
     header.source_address = source_address;
-    header.destination_address = 0xFF; // Broadcast
+    header.destination_address = 0xFF;
 
     frame.id = header.to_can_id();
 
-    // 使用浮点数格式以匹配测试期望和decode_cvt_status的格式
-    std::memcpy(frame.data.data(), &command.target_ratio, sizeof(float));
+    uint32_t raw_ratio;
+    std::memcpy(&raw_ratio, &command.target_ratio, sizeof(float));
+    insert_uint32_le(frame.data.data(), 0, raw_ratio);
+
     frame.data[4] = command.drive_mode;
     frame.data[5] = command.enable_control ? 0x01 : 0x00;
-    frame.data[6] = 0xFF; // Reserved
-    frame.data[7] = 0xFF; // Reserved
+    frame.data[6] = 0xFF;
+    frame.data[7] = 0xFF;
 
     return frame;
 }
@@ -131,6 +128,8 @@ bool J1939Protocol::is_supported_message(const CanFrame& frame) {
     switch (header.pgn) {
         case j1939::pgn::ENGINE_SPEED_LOAD:
         case j1939::pgn::VEHICLE_SPEED:
+        case j1939::pgn::TRANSMISSION_FLUIDS:
+        case j1939::pgn::ELECTRONIC_TRANSMISSION_CONTROLLER_1:
         case j1939::pgn::ACCELERATOR_PEDAL_POSITION:
         case j1939::pgn::CVT_CONTROL_COMMAND:
         case j1939::pgn::CVT_STATUS_REPORT:
@@ -145,5 +144,20 @@ uint16_t J1939Protocol::extract_uint16_le(const uint8_t* data, size_t offset) {
            (static_cast<uint16_t>(data[offset + 1]) << 8);
 }
 
+uint32_t J1939Protocol::extract_uint32_le(const uint8_t* data, size_t offset) {
+    return static_cast<uint32_t>(data[offset]) |
+           (static_cast<uint32_t>(data[offset + 1]) << 8) |
+           (static_cast<uint32_t>(data[offset + 2]) << 16) |
+           (static_cast<uint32_t>(data[offset + 3]) << 24);
+}
+
+void J1939Protocol::insert_uint32_le(uint8_t* data, size_t offset, uint32_t value) {
+    data[offset] = static_cast<uint8_t>(value & 0xFF);
+    data[offset + 1] = static_cast<uint8_t>((value >> 8) & 0xFF);
+    data[offset + 2] = static_cast<uint8_t>((value >> 16) & 0xFF);
+    data[offset + 3] = static_cast<uint8_t>((value >> 24) & 0xFF);
+}
+
 } // namespace can
 } // namespace vcu
+

@@ -1,3 +1,5 @@
+// Copyright 2025 Manus AI
+
 #ifndef VCU_CONFIG_CONFIG_MANAGER_H_
 #define VCU_CONFIG_CONFIG_MANAGER_H_
 

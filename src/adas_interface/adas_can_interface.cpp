@@ -36,14 +36,8 @@ AdasCanInterface::AdasCanInterface(PlatformInterface* platform,
     , expected_sequence_id_(0)
     , tx_sequence_id_(0) {
     
-    // 初始化统计信息 - 避免在包含浮点数的结构体上使用memset
-    comm_stats_.commands_received = 0;
-    comm_stats_.status_messages_sent = 0;
-    comm_stats_.heartbeats_sent = 0;
-    comm_stats_.timeout_errors = 0;
-    comm_stats_.checksum_errors = 0;
-    comm_stats_.sequence_errors = 0;
-    comm_stats_.average_latency_ms = 0.0f;
+    // 初始化统计信息
+    std::memset(&comm_stats_, 0, sizeof(comm_stats_));
 }
 
 AdasCanInterface::~AdasCanInterface() {

@@ -68,7 +68,8 @@ public:
 
 private:
     static uint16_t extract_uint16_le(const uint8_t* data, size_t offset);
-    // 移除未使用的insert_uint32_le函数声明
+    static uint32_t extract_uint32_le(const uint8_t* data, size_t offset);
+    static void insert_uint32_le(uint8_t* data, size_t offset, uint32_t value);
 };
 
 } // namespace can

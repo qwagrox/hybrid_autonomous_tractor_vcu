@@ -28,7 +28,8 @@ bool JsonConfigManager::load_config(const std::string& path) {
     buffer << config_file.rdbuf();
     std::string json_content = buffer.str();
 
-    parse_json_config(json_content); 
+    // Parse JSON configuration
+    parse_json_config(json_content);
 
     config_loaded_ = true;
     return true;

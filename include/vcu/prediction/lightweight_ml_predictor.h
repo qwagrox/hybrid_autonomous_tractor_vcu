@@ -102,7 +102,9 @@ private:
         float bias;
         float learning_rate;
         
-        LinearModel() : weights{}, bias(0.0f), learning_rate(0.001f) {}  // 初始化weights数组
+        LinearModel() : bias(0.0f), learning_rate(0.001f) {
+            weights.fill(0.0f);
+        }
         
         float predict(const float* features) const {
             float result = bias;
@@ -132,7 +134,7 @@ private:
         std::array<TableEntry, LOOKUP_TABLE_SIZE> table;
         size_t entry_count;
         
-        LookupTableModel() : table{}, entry_count(0) {}  // 初始化table数组
+        LookupTableModel() : entry_count(0) {}
         
         float predict(float speed, float engine_load, uint8_t terrain) const;
         void build_table(const float* training_data, size_t data_count);
@@ -152,7 +154,7 @@ private:
         std::array<Node, MAX_NODES> nodes;
         size_t node_count;
         
-        DecisionTreeModel() : nodes{}, node_count(0) {}  // 初始化nodes数组
+        DecisionTreeModel() : node_count(0) {}
         
         float predict(const float* features) const;
         void build_tree(const float* training_data, const float* labels, size_t data_count);

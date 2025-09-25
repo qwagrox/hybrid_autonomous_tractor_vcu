@@ -1,0 +1,33 @@
+# Test CVT Configuration File
+# This file is used for testing the CVT configuration system
+
+# CVT Manufacturer
+manufacturer=HMCVT_VENDOR1
+
+# Transmission ratio parameters
+min_ratio=-0.9
+max_ratio=2.0
+ratio_tolerance=0.01
+adjustment_rate=0.1
+
+# Control parameters
+control_period_ms=10
+status_period_ms=100
+
+# Safety parameters
+max_oil_temp=90.0
+min_pressure=18.0
+min_engine_rpm=1000
+
+# CAN parameters (hex format)
+control_can_id=18FFF023
+status_can_id=18FFF024
+
+# Feature switches
+enable_four_wheel_drive=false
+enable_differential_lock=false
+enable_auto_clutch=true
+
+# Debug parameters
+enable_debug_logging=true
+log_file_path=/tmp/cvt_test.log

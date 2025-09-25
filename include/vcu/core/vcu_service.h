@@ -1,3 +1,5 @@
+// Copyright 2025 Manus AI
+
 #ifndef VCU_CORE_VCU_SERVICE_H_
 #define VCU_CORE_VCU_SERVICE_H_
 
