@@ -10,7 +10,7 @@ namespace cvt {
 
 class HMCVT_Vendor1_Strategy : public CvtStrategy {
 public:
-    explicit HMCVT_Vendor1_Strategy(can::CanInterface& can_interface);
+    explicit HMCVT_Vendor1_Strategy(can::ICanInterface& can_interface);
     ~HMCVT_Vendor1_Strategy() override = default;
 
     void init() override;
@@ -39,7 +39,7 @@ private:
     uint64_t get_current_time_ms() const;
 
     // CAN接口和基本状态
-    can::CanInterface& can_interface_;
+    can::ICanInterface& can_interface_;
     common::CvtState cvt_state_;
     common::DriveMode drive_mode_;
     float target_ratio_;

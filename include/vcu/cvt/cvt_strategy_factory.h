@@ -29,7 +29,7 @@ public:
      */
     static std::unique_ptr<CvtStrategy> create_strategy(
         common::CvtManufacturer manufacturer, 
-        can::CanInterface& can_interface);
+        can::ICanInterface& can_interface);
 
     /**
      * @brief Creates an HMCVT_Vendor1 strategy directly.
@@ -41,7 +41,7 @@ public:
      * @return A unique pointer to the HMCVT_Vendor1 strategy.
      */
     static std::unique_ptr<CvtStrategy> create_hmcvt_vendor1_strategy(
-        can::CanInterface& can_interface);
+        can::ICanInterface& can_interface);
 
 private:
     // Private constructor to prevent instantiation

@@ -26,7 +26,7 @@ bool VcuService::initialize(const std::string& config_path) {
 
     try {
         // Initialize platform
-        platform_ = platform::PlatformFactory::create_platform();
+        platform_ = PlatformFactory::create_platform();
         if (!platform_) {
             std::cerr << "VCU Service: Failed to create platform interface" << std::endl;
             state_ = VcuState::FAULT;
@@ -42,40 +42,35 @@ bool VcuService::initialize(const std::string& config_path) {
         }
 
         // Initialize diagnostic monitor
-        diag_monitor_ = std::make_shared<diag::FileDiagnosticMonitor>();
-        if (!diag_monitor_->init("/tmp/vcu_diagnostics.log")) {
-            std::cerr << "VCU Service: Failed to initialize diagnostic monitor" << std::endl;
-            state_ = VcuState::FAULT;
-            return false;
-        }
+        diag_monitor_ = std::make_shared<diag::FileDiagnosticMonitor>("/tmp/vcu_diagnostics.log");
 
         // Initialize HAL
         hal_ = std::make_shared<hal::LinuxHal>();
-        if (!hal_->init()) {
+        if (!hal_->initialize()) {
             std::cerr << "VCU Service: Failed to initialize HAL" << std::endl;
             state_ = VcuState::FAULT;
             return false;
         }
 
         // Initialize CAN interface
-        can_interface_ = std::make_shared<can::PlatformCanInterface>();
-        if (!can_interface_->init()) {
+        can_interface_ = std::make_shared<can::PlatformCanInterface>(platform_.get());
+        if (can_interface_->initialize("can0", 250000) != can::CanResult::SUCCESS) {
             std::cerr << "VCU Service: Failed to initialize CAN interface" << std::endl;
             state_ = VcuState::FAULT;
             return false;
         }
 
         // Initialize ADAS interface
-        adas_interface_ = std::make_shared<adas_interface::AdasCanInterface>(can_interface_);
-        if (!adas_interface_->init()) {
+        adas_interface_ = std::make_shared<adas_interface::AdasCanInterface>(platform_.get(), can_interface_);
+        if (!adas_interface_->initialize()) {
             std::cerr << "VCU Service: Failed to initialize ADAS interface" << std::endl;
             state_ = VcuState::FAULT;
             return false;
         }
 
         // Initialize sensor manager
-        sensor_manager_ = std::make_shared<sensors::PlatformSensorDataManager>(platform_.get());
-        if (!sensor_manager_->init()) {
+        sensor_manager_ = std::make_shared<sensors::PlatformSensorDataManager>(platform_.get(), can_interface_);
+        if (sensor_manager_->initialize() != sensors::SensorDataResult::SUCCESS) {
             std::cerr << "VCU Service: Failed to initialize sensor manager" << std::endl;
             state_ = VcuState::FAULT;
             return false;
@@ -83,7 +78,7 @@ bool VcuService::initialize(const std::string& config_path) {
 
         // Initialize load predictor
         load_predictor_ = std::make_shared<prediction::LoadPredictor>();
-        if (!load_predictor_->init()) {
+        if (load_predictor_->initialize() != prediction::PredictionResult::SUCCESS) {
             std::cerr << "VCU Service: Failed to initialize load predictor" << std::endl;
             state_ = VcuState::FAULT;
             return false;
@@ -174,9 +169,7 @@ void VcuService::shutdown() {
         hal_->shutdown();
     }
 
-    if (diag_monitor_) {
-        diag_monitor_->shutdown();
-    }
+    // Diagnostic monitor doesn't need explicit shutdown
 
     state_ = VcuState::OFF;
     std::cout << "VCU Service: Shutdown completed" << std::endl;
@@ -293,10 +286,12 @@ void VcuService::update_vehicle_state() {
     }
 
     // Get latest sensor data
-    common::PerceptionData perception_data = sensor_manager_->get_latest_data();
+    common::PerceptionData perception_data;
+    sensor_manager_->get_current_data(perception_data);
     
     // Get load prediction
-    common::PredictionResult prediction_result = load_predictor_->predict(perception_data);
+    common::PredictionResult prediction_result;
+    load_predictor_->predict_load(prediction_result);
     
     // Validate CVT operation conditions
     if (!validate_cvt_operation_conditions()) {

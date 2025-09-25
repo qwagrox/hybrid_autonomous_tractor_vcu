@@ -7,7 +7,7 @@
 namespace vcu {
 namespace cvt {
 
-CvtController::CvtController(can::CanInterface& can_interface, const CvtConfig& config)
+CvtController::CvtController(can::ICanInterface& can_interface, const CvtConfig& config)
     : can_interface_(can_interface),
       config_(config),
       drive_mode_(common::DriveMode::MANUAL),

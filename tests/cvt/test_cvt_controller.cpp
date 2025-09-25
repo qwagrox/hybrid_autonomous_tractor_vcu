@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "vcu/cvt/cvt_controller.h"
+#include "mock_can_interface.h"
 
 namespace vcu {
 namespace cvt {
@@ -8,13 +9,16 @@ namespace test {
 class CvtControllerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        controller_ = std::make_unique<CvtController>();
+        mock_can_interface_ = std::make_unique<can::test::MockCanInterface>();
+        controller_ = std::make_unique<CvtController>(*mock_can_interface_);
     }
 
     void TearDown() override {
         controller_.reset();
+        mock_can_interface_.reset();
     }
 
+    std::unique_ptr<can::test::MockCanInterface> mock_can_interface_;
     std::unique_ptr<CvtController> controller_;
 };
 

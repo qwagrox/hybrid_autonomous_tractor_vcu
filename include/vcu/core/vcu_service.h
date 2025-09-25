@@ -137,6 +137,13 @@ private:
      */
     bool validate_cvt_operation_conditions() const;
 
+    /**
+     * @brief Gets the current time in milliseconds.
+     *
+     * @return Current time in milliseconds since epoch.
+     */
+    uint64_t get_current_time_ms() const;
+
     // Core state
     VcuState state_;
     std::unique_ptr<ThreadInterface> main_thread_;

@@ -7,7 +7,7 @@ namespace cvt {
 
 std::unique_ptr<CvtStrategy> CvtStrategyFactory::create_strategy(
     common::CvtManufacturer manufacturer, 
-    can::CanInterface& can_interface) {
+    can::ICanInterface& can_interface) {
     
     switch (manufacturer) {
         case common::CvtManufacturer::HMCVT_VENDOR1:
@@ -33,7 +33,7 @@ std::unique_ptr<CvtStrategy> CvtStrategyFactory::create_strategy(
 }
 
 std::unique_ptr<CvtStrategy> CvtStrategyFactory::create_hmcvt_vendor1_strategy(
-    can::CanInterface& can_interface) {
+    can::ICanInterface& can_interface) {
     return std::make_unique<HMCVT_Vendor1_Strategy>(can_interface);
 }
 

@@ -3,6 +3,7 @@
 
 #include "vcu/common/vcu_types.h"
 #include <string>
+#include <cstdint>
 
 namespace vcu {
 namespace cvt {

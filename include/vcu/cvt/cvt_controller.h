@@ -27,7 +27,7 @@ public:
      * @param can_interface Reference to the CAN interface for communication.
      * @param config CVT configuration parameters.
      */
-    CvtController(can::CanInterface& can_interface, const CvtConfig& config = CvtConfig{});
+    CvtController(can::ICanInterface& can_interface, const CvtConfig& config = CvtConfig{});
 
     /**
      * @brief Destroys the CvtController object.
@@ -148,8 +148,15 @@ private:
      */
     bool validate_safety_conditions(const common::PerceptionData& perception) const;
 
+    /**
+     * @brief Gets the current time in milliseconds.
+     *
+     * @return Current time in milliseconds since epoch.
+     */
+    uint64_t get_current_time_ms() const;
+
     // Core components
-    can::CanInterface& can_interface_;
+    can::ICanInterface& can_interface_;
     std::unique_ptr<CvtStrategy> cvt_strategy_;
     CvtConfig config_;
 

@@ -18,7 +18,7 @@ static constexpr uint32_t CVT_TEMP_STATUS_CAN_ID = 0x18FF6817;
 static constexpr uint8_t CONTROL_MSG_PERIOD_MS = 10;
 static constexpr uint8_t STATUS_MSG_PERIOD_MS = 100;
 
-HMCVT_Vendor1_Strategy::HMCVT_Vendor1_Strategy(can::CanInterface& can_interface)
+HMCVT_Vendor1_Strategy::HMCVT_Vendor1_Strategy(can::ICanInterface& can_interface)
     : can_interface_(can_interface),
       drive_mode_(common::DriveMode::MANUAL),
       target_ratio_(1.0f),
@@ -134,7 +134,7 @@ void HMCVT_Vendor1_Strategy::send_control_message() {
     can::CanFrame frame;
     frame.id = CVT_CONTROL_CAN_ID;
     frame.dlc = 8;
-    std::memset(frame.data, 0, 8);
+    std::memset(frame.data.data(), 0, 8);
     
     // Byte0: 离合器分离控制 (0-1位)
     frame.data[0] |= static_cast<uint8_t>(gear_position_) & 0x03;

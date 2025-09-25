@@ -76,6 +76,9 @@ endif()
 add_library(vcu_controller
     # Core modules
     src/cvt/cvt_controller.cpp
+    src/cvt/cvt_config.cpp
+    src/cvt/cvt_strategy_factory.cpp
+    src/cvt/hmcvt_vendor1_strategy.cpp
     src/can/can_interface.cpp
     src/can/j1939_protocol.cpp
     src/can/platform_can_interface.cpp
