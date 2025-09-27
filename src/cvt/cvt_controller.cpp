@@ -229,7 +229,7 @@ float CvtController::calculate_plowing_ratio(const common::PerceptionData& perce
         case common::TerrainType::STEEP_SLOPE:
             base_ratio *= 0.8f; // More torque for steep terrain
             break;
-        case common::TerrainType::HILLY:
+        case common::TerrainType::HILL:
             base_ratio *= 0.9f; // Slightly more torque for hilly terrain
             break;
         default:

@@ -20,12 +20,12 @@ PlatformSensorDataManager::PlatformSensorDataManager(
     time_interface_ = platform_->create_time_interface();
     data_mutex_ = platform_->create_mutex();
     
-    perception_data_.vehicle_speed_kmh = 0.0f;
-    perception_data_.engine_speed_rpm = 0.0f;
+    perception_data_.vehicle_speed = 0.0f;
+    perception_data_.engine_speed = 0.0f;
     perception_data_.engine_load_percent = 0.0f;
-    perception_data_.fuel_level_percent = 100.0f;
+    perception_data_.fuel_level = 100.0f;
     perception_data_.coolant_temp_celsius = 20.0f;
-    perception_data_.terrain_type = common::TerrainType::FLAT;
+    perception_data_.terrain = common::TerrainType::FLAT;
     perception_data_.load_factor = 0.0f;
     
     last_update_time_ms_ = time_interface_->get_monotonic_time_ms();
@@ -153,7 +153,7 @@ void PlatformSensorDataManager::parse_cvt_status(const can::CanFrame& frame) {
             perception_data_.terrain_type = common::TerrainType::STEEP_SLOPE;
             perception_data_.load_factor = 0.9f;
         } else if (cvt_status.current_ratio > 2.0f) {
-            perception_data_.terrain_type = common::TerrainType::HILLY;
+            perception_data_.terrain_type = common::TerrainType::HILL;
             perception_data_.load_factor = 0.7f;
         } else if (cvt_status.current_ratio > 1.5f) {
             perception_data_.terrain_type = common::TerrainType::GENTLE_SLOPE;

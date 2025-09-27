@@ -76,9 +76,9 @@ PredictionResult PlatformLoadPredictor::update_perception_data(const common::Per
 
     LoadDataPoint data_point;
     data_point.timestamp_ms = time_interface_->get_monotonic_time_ms();
-    data_point.vehicle_speed_kmh = data.vehicle_speed_kmh;
+    data_point.vehicle_speed_kmh = data.vehicle_speed;
     data_point.engine_load_percent = data.engine_load_percent;
-    data_point.terrain_type = data.terrain_type;
+    data_point.terrain_type = data.terrain;
     data_point.load_factor = data.load_factor;
 
     // Add to history
@@ -204,7 +204,7 @@ float PlatformLoadPredictor::calculate_terrain_factor(common::TerrainType terrai
             return 0.3f;
         case common::TerrainType::GENTLE_SLOPE:
             return 0.5f;
-        case common::TerrainType::HILLY:
+        case common::TerrainType::HILL:
             return 0.7f;
         case common::TerrainType::STEEP_SLOPE:
             return 0.9f;

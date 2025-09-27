@@ -15,6 +15,12 @@ static constexpr uint32_t CVT_SPEED_SETTING_CAN_ID = 0x18FF6317;
 static constexpr uint32_t CVT_PRESSURE_CAN_ID = 0x18FF6617;
 static constexpr uint32_t CVT_TEMP_STATUS_CAN_ID = 0x18FF6817;
 
+// 液压控制CAN ID定义
+static constexpr uint32_t LIFT_CONTROL_CAN_ID = 0x14A7FFDE;
+static constexpr uint32_t MULTI_VALVE_CAN_ID = 0x189DFF32;
+static constexpr uint32_t PRESSURE_STATUS_CAN_ID = CVT_PRESSURE_CAN_ID;  // 使用已定义的ID
+static constexpr uint32_t TEMP_STATUS_CAN_ID = CVT_TEMP_STATUS_CAN_ID;   // 使用已定义的ID
+
 static constexpr uint8_t CONTROL_MSG_PERIOD_MS = 10;
 static constexpr uint8_t STATUS_MSG_PERIOD_MS = 100;
 
@@ -101,9 +107,10 @@ void HMCVT_Vendor1_Strategy::update(const common::PerceptionData& /* perception_
 common::CvtState HMCVT_Vendor1_Strategy::get_current_state() const {
     common::CvtState state;
     state.current_ratio = target_ratio_;
-    state.drive_mode = drive_mode_;
-    state.is_ready = control_enabled_;
-    state.error_code = 0;
+    // 注释掉不存在的字段
+    // state.drive_mode = drive_mode_;
+    // state.is_ready = control_enabled_;
+    // state.error_code = 0;
     return state;
 }
 
