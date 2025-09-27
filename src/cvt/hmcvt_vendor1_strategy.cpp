@@ -9,7 +9,7 @@ namespace cvt {
 // HMCVT_Vendor1 协议常量定义
 static constexpr uint32_t CVT_CONTROL_CAN_ID = 0x18FFF023;
 static constexpr uint32_t CVT_STATUS_CAN_ID = 0x18FFF024;
-static constexpr uint32_t CVT_SPEED_INFO_CAN_ID = 0x18FF6217;  // 修改为不同的ID
+static constexpr uint32_t CVT_SPEED_INFO_CAN_ID = 0x18FF6117;  // 修改为不同的ID
 static constexpr uint32_t CVT_PTO_STATUS_CAN_ID = 0x18FF6117;
 static constexpr uint32_t CVT_SPEED_SETTING_CAN_ID = 0x18FF6317;
 static constexpr uint32_t CVT_PRESSURE_CAN_ID = 0x18FF6617;
