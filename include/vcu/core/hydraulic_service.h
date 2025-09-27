@@ -233,6 +233,8 @@ private:
     uint32_t consecutive_error_count_;
     static constexpr uint32_t MAX_CONSECUTIVE_ERRORS = 5;
     static constexpr uint64_t HEALTH_CHECK_INTERVAL_MS = 1000;
+
+    uint32_t get_current_time_ms() const;
 };
 
 } // namespace core
