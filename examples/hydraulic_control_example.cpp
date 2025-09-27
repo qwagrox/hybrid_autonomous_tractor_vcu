@@ -140,9 +140,9 @@ void demonstrate_multi_valve_control(std::shared_ptr<vcu::core::HydraulicService
 void demonstrate_hydraulic_commands(std::shared_ptr<vcu::core::HydraulicService> hydraulic_service) {
     std::cout << "\n=== Demonstrating Hydraulic Commands ===" << std::endl;
     
-    // Create a hydraulic command
+    // Create a hydraulic command for lift up
     vcu::common::HydraulicCommand command;
-    command.type = vcu::common::HydraulicCommandType::SET_LIFT_POSITION;
+    command.type = vcu::common::HydraulicCommandType::LIFT_UP;
     command.position = 75.0f;
     command.flow_percent = 50;
     command.valve_id = 0;
@@ -152,23 +152,38 @@ void demonstrate_hydraulic_commands(std::shared_ptr<vcu::core::HydraulicService>
     
     // Execute the command
     if (hydraulic_service->execute_hydraulic_command(command)) {
-        std::cout << "✓ Executed hydraulic command successfully" << std::endl;
+        std::cout << "✓ Executed LIFT_UP command successfully" << std::endl;
     } else {
-        std::cout << "✗ Failed to execute hydraulic command" << std::endl;
+        std::cout << "✗ Failed to execute LIFT_UP command" << std::endl;
     }
     
     std::this_thread::sleep_for(std::chrono::seconds(2));
     
-    // Reset to neutral position
-    command.type = vcu::common::HydraulicCommandType::SET_LIFT_POSITION;
+    // Create a command to stop lift
+    command.type = vcu::common::HydraulicCommandType::LIFT_STOP;
     command.position = 0.0f;
     command.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now().time_since_epoch()).count();
     
     if (hydraulic_service->execute_hydraulic_command(command)) {
-        std::cout << "✓ Reset to neutral position" << std::endl;
+        std::cout << "✓ Executed LIFT_STOP command successfully" << std::endl;
     } else {
-        std::cout << "✗ Failed to reset position" << std::endl;
+        std::cout << "✗ Failed to execute LIFT_STOP command" << std::endl;
+    }
+    
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    
+    // Create a command to set valve flow
+    command.type = vcu::common::HydraulicCommandType::SET_VALVE_FLOW;
+    command.valve_id = 1;
+    command.flow_percent = 40;
+    command.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+    
+    if (hydraulic_service->execute_hydraulic_command(command)) {
+        std::cout << "✓ Executed SET_VALVE_FLOW command successfully" << std::endl;
+    } else {
+        std::cout << "✗ Failed to execute SET_VALVE_FLOW command" << std::endl;
     }
 }
 
@@ -197,11 +212,12 @@ int main(int argc, char* argv[]) {
         
         std::cout << "✓ CAN interface initialized: " << interface_name << " @ " << bitrate << " bps" << std::endl;
         
-        // Create CVT strategy
-        vcu::cvt::CvtConfig cvt_config;
-        cvt_config.vendor_type = vcu::cvt::CvtVendorType::HMCVT_VENDOR1;
+        // Create CVT configuration
+        vcu::common::CvtConfig cvt_config;
+        cvt_config.manufacturer = vcu::common::CvtManufacturer::HMCVT_VENDOR1;
         cvt_config.can_interface = can_interface;
         
+        // Create CVT strategy
         auto cvt_strategy = vcu::cvt::CvtStrategyFactory::create_strategy(cvt_config);
         if (!cvt_strategy) {
             std::cerr << "Failed to create CVT strategy" << std::endl;
