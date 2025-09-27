@@ -13,7 +13,7 @@ namespace common {
 enum class TerrainType {
     FLAT = 0,           ///< Flat terrain (roads, flat fields)
     GENTLE_SLOPE = 1,   ///< Gentle slope terrain (slight inclines)
-    HILLY = 2,          ///< Hilly terrain (moderate inclines, soft soil)
+    HILL = 2,           ///< Hilly terrain (moderate inclines, soft soil)
     STEEP_SLOPE = 3,    ///< Steep slope terrain (steep inclines, rocky ground)
     SMOOTH = 0,         ///< Alias for FLAT (backward compatibility)
     MODERATE = 2,       ///< Alias for HILLY (backward compatibility)
@@ -56,6 +56,43 @@ enum class MultiValveState : uint8_t {
 };
 
 /**
+ * @enum DriveMode
+ * @brief Defines the drive mode for CVT control.
+ */
+enum class DriveMode : uint8_t {
+    MANUAL = 0,         ///< Manual drive mode
+    AUTO = 1,           ///< Automatic drive mode
+    SPORT = 2,          ///< Sport drive mode
+    ECO = 3             ///< Economy drive mode
+};
+
+/**
+ * @enum HydraulicCommandType
+ * @brief Defines the types of hydraulic commands.
+ */
+enum class HydraulicCommandType : uint8_t {
+    LIFT_UP = 0,        ///< Lift up command
+    LIFT_DOWN = 1,      ///< Lift down command
+    LIFT_STOP = 2,      ///< Stop lift command
+    SET_VALVE_FLOW = 3, ///< Set valve flow command
+    EMERGENCY_STOP = 4  ///< Emergency stop command
+};
+
+/**
+ * @struct HydraulicCommand
+ * @brief Represents a hydraulic control command.
+ */
+struct HydraulicCommand {
+    HydraulicCommandType type;          ///< Command type
+    uint8_t valve_id = 0;              ///< Valve ID (0-3 for multi-valves)
+    int8_t flow_percent = 0;           ///< Flow percentage (-100 to 100)
+    float position = 0.0f;             ///< Target position (0-100%)
+    bool valve_lock = false;           ///< Valve lock state
+    uint32_t timestamp = 0;            ///< Command timestamp
+};
+
+/**
+ * @struct HydraulicState
  * @brief Represents hydraulic system state.
  */
 struct HydraulicState {
@@ -72,88 +109,65 @@ struct HydraulicState {
         MultiValveState::NEUTRAL,
         MultiValveState::NEUTRAL
     };
-    bool valve_locked = false;          ///< True if valves are locked
     
-    // Pressure and temperature monitoring
-    float main_pressure_mpa = 0.0f;     ///< Main supply pressure (MPa)
-    float lift_pressure_mpa = 0.0f;     ///< Lift system pressure (MPa)
-    float pto_pressure_mpa = 0.0f;      ///< PTO clutch pressure (MPa)
-    float rear_axle_temp_celsius = 20.0f; ///< Rear axle oil temperature (°C)
-    float hst_temp_celsius = 20.0f;     ///< HST oil temperature (°C)
-    
-    // Filter and system status
-    bool lift_filter_ok = true;         ///< Lift filter status
-    bool suction_filter_ok = true;      ///< Suction filter status
-    bool hydraulic_enabled = false;     ///< True if hydraulic control is enabled
-    
-    // Error flags
-    uint32_t error_flags = 0;           ///< Error flags bitfield
-    
-    // Data validity
-    bool data_valid = false;            ///< True if the data is valid and recent
+    // System status (新增字段)
+    float pressure = 0.0f;              ///< System pressure (bar)
+    float temperature = 0.0f;           ///< System temperature (°C)
+    bool is_ready = false;              ///< System ready status
+    uint32_t error_code = 0;            ///< Error code
 };
 
 /**
- * @brief Represents hydraulic control command.
+ * @struct CvtState
+ * @brief Represents CVT transmission state.
  */
-struct HydraulicCommand {
-    // Lift control
-    LiftAction lift_action = LiftAction::STOP; ///< Lift action command
-    LiftMode lift_mode = LiftMode::MANUAL;     ///< Target lift mode
-    float target_position = 0.0f;             ///< Target position (0-100%)
-    float target_depth = 0.0f;                ///< Target working depth (0-100%)
-    uint8_t lift_speed = 50;                  ///< Lift speed (0-100%)
-    uint8_t force_position_mix = 50;          ///< Force/position mix ratio (0-100%)
-    uint8_t upper_limit = 100;                ///< Upper position limit (0-100%)
-    
-    // Multi-valve control
-    int8_t valve_flows[4] = {0, 0, 0, 0};     ///< Flow control for 4 valves (-100 to 100)
-    bool valve_lock = false;                  ///< Lock all valves
-    
-    // Control flags
-    bool hydraulic_enable = false;            ///< Enable hydraulic control
-    bool emergency_stop = false;              ///< Emergency stop flag
-    
-    // Timestamp
-    uint64_t timestamp_ms = 0;                ///< Command timestamp
+struct CvtState {
+    float current_ratio = 1.0f;         ///< Current transmission ratio
+    DriveMode drive_mode = DriveMode::MANUAL; ///< Current drive mode (新增字段)
+    bool is_ready = false;              ///< CVT ready status (新增字段)
+    uint32_t error_code = 0;            ///< CVT error code (新增字段)
+    float target_ratio = 1.0f;          ///< Target transmission ratio
+    bool control_enabled = false;       ///< Control enabled status
 };
 
 /**
- * @brief Represents perception data from vehicle sensors.
+ * @struct PerceptionData
+ * @brief Represents sensor perception data.
  */
 struct PerceptionData {
-    // Basic sensor data
-    float vehicle_speed_mps = 0.0f;              ///< Vehicle speed in meters per second
-    float vehicle_speed_kmh = 0.0f;              ///< Vehicle speed in kilometers per hour
-    float engine_speed_rpm = 0.0f;               ///< Engine speed in revolutions per minute
-    float engine_load_percent = 0.0f;            ///< Engine load in percentage
-    float accelerator_pedal_percent = 0.0f;      ///< Accelerator pedal position in percentage
-    
-    // Additional sensor data
-    float fuel_level_percent = 100.0f;           ///< Fuel level in percentage
-    float coolant_temp_celsius = 20.0f;          ///< Coolant temperature in Celsius
-    
-    // Transmission data
-    float current_transmission_ratio = 1.0f;     ///< Current CVT transmission ratio
-    bool is_transmission_shifting = false;       ///< True if transmission is currently shifting
-    
-    // Hydraulic sensor data
-    HydraulicState hydraulic_state;              ///< Current hydraulic system state
-    
-    // Derived data
-    float load_factor = 0.0f;                    ///< Calculated load factor (0.0 - 1.0)
-    TerrainType terrain_type = TerrainType::FLAT; ///< Detected terrain type
-    
-    // Data validity
-    bool data_valid = false;                     ///< True if the data is valid and recent
+    float vehicle_speed = 0.0f;         ///< Vehicle speed (km/h)
+    float engine_speed = 0.0f;          ///< Engine speed (RPM)
+    float load_factor = 0.0f;           ///< Current load factor (0-1)
+    TerrainType terrain = TerrainType::FLAT; ///< Current terrain type
+    bool obstacle_detected = false;      ///< Obstacle detection status
+    float fuel_level = 0.0f;            ///< Fuel level (0-100%)
+    uint32_t timestamp = 0;             ///< Data timestamp
 };
 
 /**
- * @brief Represents prediction results.
- * For now, this is a placeholder.
+ * @struct CvtConfig
+ * @brief CVT configuration parameters.
  */
-struct PredictionResult {
-    float predicted_load_percent = 0.0f; // Predicted engine load in percentage
+struct CvtConfig {
+    float min_ratio = 0.5f;             ///< Minimum transmission ratio
+    float max_ratio = 2.0f;             ///< Maximum transmission ratio
+    float default_ratio = 1.0f;         ///< Default transmission ratio
+    uint16_t status_period_ms = 100;    ///< Status message period (ms) - 修改为uint16_t
+    uint16_t control_period_ms = 10;    ///< Control message period (ms)
+    bool enable_auto_mode = true;       ///< Enable automatic mode
+    bool enable_diagnostics = true;     ///< Enable diagnostics
+};
+
+/**
+ * @struct VehicleState
+ * @brief Overall vehicle state information.
+ */
+struct VehicleState {
+    CvtState cvt_state;                 ///< CVT transmission state
+    HydraulicState hydraulic_state;     ///< Hydraulic system state
+    PerceptionData perception_data;     ///< Sensor perception data
+    bool emergency_stop = false;        ///< Emergency stop status
+    uint32_t system_timestamp = 0;      ///< System timestamp
 };
 
 } // namespace common
