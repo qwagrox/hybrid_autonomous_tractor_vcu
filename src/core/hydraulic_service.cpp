@@ -71,6 +71,9 @@ void HydraulicService::update(const common::PerceptionData& /* perception_data *
         // Update last known state
         last_hydraulic_state_ = current_state;
         last_update_time_ = get_current_time_ms();
+        
+        // Notify state callbacks
+        notify_state_callbacks(current_state);
     }
     
     // Monitor hydraulic health
@@ -282,10 +285,12 @@ bool HydraulicService::check_safety_conditions() const {
 
 void HydraulicService::monitor_hydraulic_health() {
     common::HydraulicState state = cvt_strategy_->get_hydraulic_state();
+    uint32_t current_error_flags = 0;
     
     // Check for low pressure warning
     if (state.pressure < 1.0f) {
         consecutive_error_count_++;
+        current_error_flags |= 0x01; // Low pressure flag
     } else {
         consecutive_error_count_ = 0;
     }
@@ -293,6 +298,15 @@ void HydraulicService::monitor_hydraulic_health() {
     // Check for high temperature warning
     if (state.temperature > 100.0f) {
         consecutive_error_count_++;
+        current_error_flags |= 0x02; // High temperature flag
+    }
+    
+    // Check if error flags have changed
+    if (current_error_flags != last_error_flags_) {
+        last_error_flags_ = current_error_flags;
+        if (current_error_flags != 0) {
+            notify_error_callbacks(current_error_flags);
+        }
     }
     
     // If too many consecutive errors, disable hydraulic system
@@ -305,6 +319,48 @@ uint32_t HydraulicService::get_current_time_ms() const {
     auto now = std::chrono::steady_clock::now();
     auto duration = now.time_since_epoch();
     return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+}
+
+void HydraulicService::register_state_callback(HydraulicStateCallback callback) {
+    state_callbacks_.push_back(callback);
+}
+
+void HydraulicService::register_error_callback(HydraulicErrorCallback callback) {
+    error_callbacks_.push_back(callback);
+}
+
+void HydraulicService::notify_state_callbacks(const common::HydraulicState& new_state) {
+    for (const auto& callback : state_callbacks_) {
+        if (callback) {
+            callback(new_state);
+        }
+    }
+}
+
+void HydraulicService::notify_error_callbacks(uint32_t error_flags) {
+    for (const auto& callback : error_callbacks_) {
+        if (callback) {
+            callback(error_flags);
+        }
+    }
+}
+
+bool HydraulicService::enable_hydraulic_control(bool enable) {
+    if (!initialized_) {
+        return false;
+    }
+    
+    try {
+        cvt_strategy_->enable_hydraulic_control(enable);
+        hydraulic_enabled_ = enable;
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+bool HydraulicService::is_hydraulic_enabled() const {
+    return hydraulic_enabled_;
 }
 
 } // namespace core

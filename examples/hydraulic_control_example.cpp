@@ -225,8 +225,9 @@ int main(int argc, char* argv[]) {
         
         std::cout << "✓ CVT strategy created" << std::endl;
         
-        // Create hydraulic service
-        auto hydraulic_service = std::make_shared<vcu::core::HydraulicService>(cvt_strategy);
+        // Create hydraulic service (convert unique_ptr to shared_ptr)
+        std::shared_ptr<vcu::cvt::CvtStrategy> shared_strategy(cvt_strategy.release());
+        auto hydraulic_service = std::make_shared<vcu::core::HydraulicService>(shared_strategy);
         
         // Register callbacks
         hydraulic_service->register_state_callback(hydraulic_state_callback);
