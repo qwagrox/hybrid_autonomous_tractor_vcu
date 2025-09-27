@@ -55,7 +55,7 @@ void HydraulicService::shutdown() {
     hydraulic_enabled_ = false;
 }
 
-void HydraulicService::update(const common::PerceptionData& perception_data) {
+void HydraulicService::update(const common::PerceptionData& /* perception_data */) {
     if (!initialized_ || !hydraulic_enabled_) {
         return;
     }
@@ -88,7 +88,12 @@ bool HydraulicService::set_lift_mode(common::LiftMode mode) {
         return false;
     }
     
-    return cvt_strategy_->set_lift_mode(mode);
+    try {
+        cvt_strategy_->set_lift_mode(mode);
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 bool HydraulicService::set_lift_position(float position) {
@@ -101,7 +106,12 @@ bool HydraulicService::set_lift_position(float position) {
         return false;
     }
     
-    return cvt_strategy_->set_lift_position(position);
+    try {
+        cvt_strategy_->set_lift_position(position);
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 bool HydraulicService::execute_lift_action(common::LiftAction action) {
@@ -114,7 +124,12 @@ bool HydraulicService::execute_lift_action(common::LiftAction action) {
         return false;
     }
     
-    return cvt_strategy_->execute_lift_action(action);
+    try {
+        cvt_strategy_->execute_lift_action(action);
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 bool HydraulicService::set_multi_valve_flow(uint8_t valve_id, int8_t flow_percent) {
@@ -127,7 +142,12 @@ bool HydraulicService::set_multi_valve_flow(uint8_t valve_id, int8_t flow_percen
         return false;
     }
     
-    return cvt_strategy_->set_multi_valve_flow(valve_id, flow_percent);
+    try {
+        cvt_strategy_->set_multi_valve_flow(valve_id, flow_percent);
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 bool HydraulicService::set_multi_valve_lock(bool lock) {
@@ -135,7 +155,12 @@ bool HydraulicService::set_multi_valve_lock(bool lock) {
         return false;
     }
     
-    return cvt_strategy_->set_multi_valve_lock(lock);
+    try {
+        cvt_strategy_->set_multi_valve_lock(lock);
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 common::HydraulicState HydraulicService::get_hydraulic_state() const {
@@ -179,24 +204,35 @@ bool HydraulicService::execute_hydraulic_command(const common::HydraulicCommand&
         return false;
     }
     
-    return cvt_strategy_->execute_hydraulic_command(command);
+    try {
+        cvt_strategy_->execute_hydraulic_command(command);
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
-void HydraulicService::emergency_stop() {
+bool HydraulicService::emergency_stop() {
     if (!cvt_strategy_) {
-        return;
+        return false;
     }
     
-    // Create emergency stop command
-    common::HydraulicCommand stop_command;
-    stop_command.type = common::HydraulicCommandType::EMERGENCY_STOP;
-    stop_command.timestamp = get_current_time_ms();
-    
-    // Execute emergency stop
-    cvt_strategy_->execute_hydraulic_command(stop_command);
-    
-    // Disable hydraulic system
-    hydraulic_enabled_ = false;
+    try {
+        // Create emergency stop command
+        common::HydraulicCommand stop_command;
+        stop_command.type = common::HydraulicCommandType::EMERGENCY_STOP;
+        stop_command.timestamp = get_current_time_ms();
+        
+        // Execute emergency stop
+        cvt_strategy_->execute_hydraulic_command(stop_command);
+        
+        // Disable hydraulic system
+        hydraulic_enabled_ = false;
+        
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 bool HydraulicService::validate_hydraulic_command(const common::HydraulicCommand& command) const {
