@@ -90,6 +90,7 @@ private:
     can::ICanInterface& can_interface_;
     common::DriveMode drive_mode_;
     float target_ratio_;
+    mutable float current_ratio_;  // 当前传动比，用于渐进式调整
     bool control_enabled_;
     GearPosition gear_position_;
     uint8_t cvt_speed_value_;

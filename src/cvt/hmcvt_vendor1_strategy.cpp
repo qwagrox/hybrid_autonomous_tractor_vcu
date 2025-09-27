@@ -28,6 +28,7 @@ HMCVT_Vendor1_Strategy::HMCVT_Vendor1_Strategy(can::ICanInterface& can_interface
     : can_interface_(can_interface),
       drive_mode_(common::DriveMode::MANUAL),
       target_ratio_(1.0f),
+      current_ratio_(1.0f),  // 初始化当前传动比
       control_enabled_(false),
       gear_position_(GearPosition::NEUTRAL),
       cvt_speed_value_(0),
@@ -106,11 +107,28 @@ void HMCVT_Vendor1_Strategy::update(const common::PerceptionData& /* perception_
 
 common::CvtState HMCVT_Vendor1_Strategy::get_current_state() const {
     common::CvtState state;
-    state.current_ratio = target_ratio_;
-    // 注释掉不存在的字段
-    // state.drive_mode = drive_mode_;
-    // state.is_ready = control_enabled_;
-    // state.error_code = 0;
+    
+    // 实现渐进式传动比调整
+    const float RATIO_CHANGE_RATE = 0.1f; // 每次更新的最大变化率
+    float ratio_diff = target_ratio_ - current_ratio_;
+    
+    if (std::abs(ratio_diff) > RATIO_CHANGE_RATE) {
+        // 如果差异较大，渐进调整
+        if (ratio_diff > 0) {
+            current_ratio_ += RATIO_CHANGE_RATE;
+        } else {
+            current_ratio_ -= RATIO_CHANGE_RATE;
+        }
+        state.is_shifting = true;
+    } else {
+        // 如果差异较小，直接设置为目标值
+        current_ratio_ = target_ratio_;
+        state.is_shifting = false;
+    }
+    
+    state.current_ratio = current_ratio_;
+    state.target_ratio = target_ratio_;
+    
     return state;
 }
 
