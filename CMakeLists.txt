@@ -91,6 +91,9 @@ add_library(vcu_controller
     src/config/json_config_manager.cpp
     src/diag/file_diagnostic_monitor.cpp
     
+    # Hydraulic control modules (NEW)
+    src/core/hydraulic_service.cpp
+    
     # Platform abstraction layer
     ${PLATFORM_SOURCES}
 )
@@ -126,6 +129,15 @@ target_link_libraries(vcu_main
     vcu_controller
 )
 
+# Hydraulic Control Example (NEW)
+add_executable(hydraulic_control_example
+    examples/hydraulic_control_example.cpp
+)
+
+target_link_libraries(hydraulic_control_example
+    vcu_controller
+)
+
 # Testing (Linux only for now)
 if(TARGET_PLATFORM STREQUAL "LINUX")
     enable_testing()
@@ -156,7 +168,17 @@ if(TARGET_PLATFORM STREQUAL "LINUX")
         GTest::gtest_main
     )
 
+    # Hydraulic Control Tests (NEW)
+    add_executable(hydraulic_tests
+        tests/test_main.cpp
+        tests/test_hydraulic_control.cpp
+    )
 
+    target_link_libraries(hydraulic_tests
+        vcu_controller
+        GTest::gtest
+        GTest::gtest_main
+    )
 
     # Prediction Tests
     add_executable(prediction_tests
@@ -187,13 +209,13 @@ if(TARGET_PLATFORM STREQUAL "LINUX")
     # Add tests
     add_test(NAME cvt_controller_tests COMMAND cvt_tests)
     add_test(NAME can_module_tests COMMAND can_tests)
-    
+    add_test(NAME hydraulic_control_tests COMMAND hydraulic_tests)  # NEW
     add_test(NAME prediction_module_tests COMMAND prediction_tests)
     add_test(NAME core_service_tests COMMAND core_tests)
 endif()
 
 # Installation
-install(TARGETS vcu_controller vcu_main
+install(TARGETS vcu_controller vcu_main hydraulic_control_example
     EXPORT vcu_controller_targets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
@@ -239,4 +261,5 @@ message(STATUS "Target Platform: ${TARGET_PLATFORM}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "Install Prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "Hydraulic Control: ENABLED")  # NEW
 message(STATUS "==========================================")
