@@ -212,13 +212,12 @@ int main(int argc, char* argv[]) {
         
         std::cout << "✓ CAN interface initialized: " << interface_name << " @ " << bitrate << " bps" << std::endl;
         
-        // Create CVT configuration
-        vcu::common::CvtConfig cvt_config;
-        cvt_config.manufacturer = vcu::common::CvtManufacturer::HMCVT_VENDOR1;
-        cvt_config.can_interface = can_interface;
+        // Create CVT strategy using the correct factory function signature
+        auto cvt_strategy = vcu::cvt::CvtStrategyFactory::create_strategy(
+            vcu::common::CvtManufacturer::HMCVT_VENDOR1,
+            *can_interface
+        );
         
-        // Create CVT strategy
-        auto cvt_strategy = vcu::cvt::CvtStrategyFactory::create_strategy(cvt_config);
         if (!cvt_strategy) {
             std::cerr << "Failed to create CVT strategy" << std::endl;
             return -1;
